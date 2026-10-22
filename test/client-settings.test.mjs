@@ -5,6 +5,7 @@ import test from 'node:test'
 import { fileURLToPath } from 'node:url'
 
 import { getRejectionStatus, getWriteRejectionStatus, isLoopbackAddress, isTrustedHost } from '../lib/http-guard.js'
+import { registerPluginUpdater } from '../lib/plugin-updater.js'
 import { credentialRefStatus, unwrapVolatile } from '../lib/secrets.js'
 import { normalizeExternalUrl } from '../lib/url-safety.js'
 
@@ -131,4 +132,53 @@ test('https URL rewriting only upgrades matching Gitea hosts', () => {
     normalizeExternalUrl('http://other.example/x', { baseUrl: 'https://git.example', dshProtocol: 'https:' }),
     'http://other.example/x',
   )
+})
+
+test('fork off-switch: config flag gates the in-UI updater everywhere', () => {
+  // The updater installs `@goodandready/dsh-gitea@<npm latest>`, which replaces a
+  // link:ed fork checkout. The switch must exist in the schema, be wired into
+  // the updater, and be reflected in the form (field + hidden panel + no poll).
+  assert.match(hostEntry, /updates: z\.boolean\(\)\.default\(true\)/)
+  assert.match(hostEntry, /isEnabled: \(\) => live\(\)\.updates !== false/)
+  assert.match(client, /updates: cfg\.updates !== false/)
+  assert.match(client, /draft\.updates !== false/)
+  assert.match(client, /t\('updatesEnabled'\)/)
+  assert.doesNotMatch(client, /React\.useEffect\(\(\) => \{\s*checkUpdates\(\)/)
+  assert.match(client, /maybeCheckUpdates\(data && data\.config\)/)
+})
+
+test('plugin updater refuses every request while the off-switch is off', async () => {
+  const registrations = []
+  const ctx = {
+    get: (name) => (name === 'webServer' ? { register: (options) => { registrations.push(options); return () => {} } } : undefined),
+  }
+  registerPluginUpdater(ctx, {
+    endpoint: '/api/test/update',
+    packageName: 'test-package',
+    manifestUrl: new URL('../package.json', import.meta.url),
+    isEnabled: () => false,
+  })
+  assert.equal(registrations.length, 1)
+  assert.equal(registrations[0].path, '/api/test/update')
+
+  const call = (request) => new Promise((resolve, reject) => {
+    const response = {
+      status: 0,
+      writeHead(status) { this.status = status },
+      end(chunk) {
+        try {
+          resolve({ status: this.status, body: JSON.parse(String(chunk || '{}')) })
+        } catch (error) {
+          reject(error)
+        }
+      },
+    }
+    Promise.resolve(registrations[0].handler(request, response)).catch(reject)
+  })
+
+  for (const method of ['GET', 'HEAD', 'POST']) {
+    const result = await call({ method, headers: {}, socket: { remoteAddress: '127.0.0.1' } })
+    assert.equal(result.status, 403)
+    assert.equal(result.body.code, 'disabled')
+  }
 })

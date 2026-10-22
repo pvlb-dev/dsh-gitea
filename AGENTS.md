@@ -10,17 +10,29 @@ which checks prove a change works. Read it before editing `lib/`.
 - A DSH **profile bundle + plugin** that connects the Harness to a self-hosted
   Gitea/Forgejo instance: 20+ agent tools, HTTP routes, a Git status chip in the
   session header, and a settings page.
-- This tree is the **public/sanitized mirror** of a private development repo.
-  `lib/` is what ships; there is no `src/` and no client build step here.
-  `lib/client.js` is a **generated browser bundle** (single `window.__ModuleLoader__.load`
-  factory). Treat hand edits there as source-of-truth patches that must be
-  mirrored back to the private TypeScript source, or they will be lost the next
-  time the public tree is regenerated. The sanitizer also strips the private test
-  suite, `.gitea/`, `docs/`, and some scripts — do not be surprised that CI files
-  and most tests are absent.
-- Package identity: `@goodandready/dsh-gitea`, currently `0.7.40`.
-  Runtime peer line: DSH `0.1.7-rc.2` / `0.2.0-rc.x` (`peerDependencies`).
-- Remote: `ssh://git@git.pvlb.dev/dsh-plugins/dsh-gitea.git` (branch `main`).
+- This checkout is **our private deployment fork** of the upstream public repo
+  [`GooDAnDReaDY/dsh-gitea`](https://github.com/GooDAnDReaDY/dsh-gitea) (MIT).
+  `origin` is our Forgejo, `upstream` is the GitHub project. The policy is
+  **watch upstream, never develop against it** — see "Fork status and upstream
+  sync" below.
+- Upstream's public GitHub tree is the **sanitized publish output of a private
+  development repo**: every upstream commit is `chore(publish): sanitized tree
+  from <sha>`. `lib/` is what ships; there is no `src/` and no client build step
+  in the public tree, and `lib/client.js` is a **generated browser bundle**
+  (single `window.__ModuleLoader__.load` factory). The sanitizer strips upstream
+  tests, `.gitea/`, `docs/`, and some scripts, so up there `npm test` points at
+  files that do not exist. Consequence: our `lib/*` edits are real source patches
+  here, but they only reach upstream if the author ports them into the private
+  source. Treat the public tree as a vendored artifact, not as a contribution
+  target for generated files.
+- Package identity: `@goodandready/dsh-gitea` — the name is kept unchanged so the
+  bundle row id, Settings namespace, and `plugins.row.config` key stay stable.
+  Fork version: `0.7.40-dsh.1` (see "Versioning and tags"). Runtime peer line:
+  DSH `0.1.7-rc.2` / `0.2.0-rc.x` (`peerDependencies`).
+- Remotes:
+  - `origin` = `ssh://git@git.pvlb.dev/dsh-plugins/dsh-gitea.git` — our private
+    Forgejo, the **only** push target.
+  - `upstream` = `https://github.com/GooDAnDReaDY/dsh-gitea.git` — fetch only.
 
 ## This deployment (facts checked on 2026-10-22)
 
@@ -57,6 +69,41 @@ which checks prove a change works. Read it before editing `lib/`.
   bundle is served per-request and reloads with a page hard-refresh.
 - Commit identity for this repo: `dsh <dsh@pvlb.dev>`.
 
+## Fork status and upstream sync
+
+- **We watch upstream; we do not develop against it.** The GitHub tree is
+  generated from the author's private source and has no CI; a PR touching
+  generated `lib/client.js` can be dropped on the next `chore(publish)`.
+- Current base: upstream `abfd952` (`chore(publish): sanitized tree from
+  e30e98ab`). Our commits on top: settings UI/install fixes, the HTTP guard fix,
+  and the fork-identity commit (updater off-switch, docs, versioning). Keep them
+  small and Conventional so rebases stay cheap.
+- Sync deliberately, when an upstream change actually matters — not on every
+  publish:
+  ```bash
+  git fetch upstream
+  git rebase upstream/main     # or merge when the generated bundle is noisy
+  npm test && npm run test:leaks
+  ```
+  Conflict hotspots: `package.json` (version line), the top of `CHANGELOG.md`,
+  and `lib/client.js` (generated bundle — our largest diff). Keep our functional
+  patch, re-run the checks, toggle the bundle off/on, hard-refresh the browser.
+- Never push this tree to GitHub: it carries internal hostnames in `AGENTS.md`
+  and a fork-specific README. If we ever upstream something, isolate it into a
+  minimal branch or a patch file (`lib/http-guard.js` is self-contained) and keep
+  internal-context files out of it.
+- Never publish this package to npm: the name belongs to upstream, and this
+  deployment installs by local path (`link:`).
+
+### Versioning and tags
+
+- Version format `<upstream base>-dsh.<n>` (currently `0.7.40-dsh.1`): semver
+  valid, visibly a fork, and still comparable to upstream releases.
+- Tag every state that is live on the server as `v<version>` (for example
+  `v0.7.40-dsh.1`). Rollback = `git checkout <tag>`, toggle the bundle off/on,
+  hard-refresh.
+- Add a fork entry to `CHANGELOG.md` per release; leave upstream entries intact.
+
 ## Ground rules
 
 1. **Use the Harness tools, not shell writes, for the profile.** Changes to the
@@ -75,6 +122,15 @@ which checks prove a change works. Read it before editing `lib/`.
    settings namespace and the `plugins.row.config` key depend on it.
 5. **Commit in Conventional Commits style**, identity `dsh <dsh@pvlb.dev>`, and
    push only to `origin/main` (no force push).
+6. **Keep the npm auto-updater off in this profile** (`updates: false`). The
+   one-click updater runs `dsh plugin add @goodandready/dsh-gitea@<npm latest>`,
+   which replaces this `link:` checkout with the upstream tarball and silently
+   reverts every fork patch. The `updates` Config flag gates both the UI and the
+   `/api/dsh-gitea/update` route (`isEnabled` in `lib/index.js`); do not remove
+   either gate, and do not re-enable it without first verifying what npm would
+   install over this tree.
+7. **Fork identity:** keep the package name and bundle row id, never publish to
+   npm, and do not add GitHub as a push remote.
 
 ## Repository map
 
@@ -86,13 +142,14 @@ which checks prove a change works. Read it before editing `lib/`.
 | `lib/routes-hub.js` | Interactive Hub action dispatcher used by `POST /dsh-gitea/hub` |
 | `lib/http-guard.js` | Host/Origin/CSRF fence + DSH Connection authentication for custom routes |
 | `lib/gitea-client.js` | Gitea REST client (cache, ETags, retry, timeouts) |
+| `lib/plugin-updater.js` | One-click npm updater; loopback-only, gated by `options.isEnabled` (fork off-switch) |
 | `lib/handlers.js`, `lib/handlers/*` | Tool implementations; `lib/tool-defs.js`, `lib/tool-defs/*` hold schemas |
 | `lib/settings`-related | Settings live in `lib/index.js` (`Config`, `readServedConfig`, `servedScope`); UI in `lib/client.js` |
 | `assets/issue-templates/` | Issue form templates the plugin can install |
 | `cordis.patch.yml` | Bundle patch: inserts the `dsh-gitea` row with empty config |
 | `scripts/dev-link-dsh.mjs` | Links DSH peer packages into this checkout for `link:` installs |
 | `scripts/leak-scan.mjs` | Fails on private paths/scopes/tokens/Cyrillic in the publishable tree |
-| `test/*.test.mjs` | Mirror-safe regression checks (the full private suite is not public) |
+| `test/*.test.mjs` | Fork regression checks (`npm test`); upstream ships no tests, so this suite is ours |
 
 ## How DSH 0.2.x loads this plugin
 
@@ -151,6 +208,12 @@ which checks prove a change works. Read it before editing `lib/`.
 - `settings/document-updated` is emitted as `(namespace, revision)`; the host
   handler re-reads the served document for `dsh-gitea` so writes from any other
   settings surface become live.
+- `updates` (default `true`) is the fork **updater off-switch**. It is a volatile
+  Config field, so it renders in the form and persists through the same POST.
+  When `false`, the form hides the auto-updater panel and skips the npm registry
+  check, and `lib/index.js` passes `isEnabled: () => live().updates !== false` to
+  the updater, which answers 403 `code: "disabled"` on every request. This
+  deployment keeps it `false` (see Ground rule 6).
 
 ### HTTP routes
 
@@ -169,6 +232,10 @@ which checks prove a change works. Read it before editing `lib/`.
   correctly gets `401 {"code":"unauthorized"}`. That 401 is expected, not a
   route bug. A `403` *with* a valid session over a trusted hostname is the guard,
   not authentication.
+- `/api/dsh-gitea/update` is special: it is registered by `lib/plugin-updater.js`
+  and enforces its own extra fence — loopback socket, `x-dsh-plugin-update: 1`,
+  same-origin Host/Origin — on top of the Config `updates` off-switch. Both
+  gates apply before any npm command runs.
 
 ## Install / development loop
 
@@ -248,7 +315,8 @@ regression gate for edits to `lib/client.js`.
   Config schema, and the tool list prove *registration*, not what a human sees.
   Say so explicitly in reports. If a browser is available, verify: Settings has
   a **Gitea** entry; the form lists fields; values load; Save persists across a
-  reload; the Plugins page row shows Configure; the session header shows the Git
+  reload; the **Plugin Updates** switch is off and the auto-updater panel is
+  absent; the Plugins page row shows Configure; the session header shows the Git
   chip in a git workspace.
 - The settings form talks to `/dsh-gitea/config` with an authenticated cookie;
   an unauthenticated `curl` gets 401 by design and cannot substitute for the
@@ -268,6 +336,9 @@ regression gate for edits to `lib/client.js`.
 | Configure page missing on Plugins | row key mismatch | key must be `@goodandready/dsh-gitea#dsh-gitea` |
 | Settings fields empty / not projected | Config field without `.volatile()` | mark the field volatile |
 | Save appears successful but is lost on restart | write bypassed the Settings service | persist via `servedScope.update`; check `writable` |
+| Settings page has no Plugin Auto-Updater panel | `updates: false` — the fork default in this profile | expected; only enable it if you deliberately want npm to replace the `link:` checkout |
+| `/api/dsh-gitea/update` answers 403 `code: "disabled"` | Config `updates: false` | expected on this fork; never remove the gate |
+| Fork fixes disappeared after a plugin/DSH update | the one-click updater installed the upstream npm tarball over the checkout | `git checkout v0.7.40-dsh.1`, toggle the bundle off/on, keep `updates: false` |
 | Tools resolve wrong owner/repo | no `defaultOwner`/`defaultRepo` and no git origin in the session cwd | configure defaults or pass owner/repo |
 | Plugin silently absent after a DSH upgrade | peer range does not name the new prerelease line | extend the `peerDependencies` range for every `@deepseek-ai/dsh-*` peer |
 
@@ -283,6 +354,9 @@ regression gate for edits to `lib/client.js`.
 - The leak scanner must stay green: no private home paths, private scopes,
   token literals, or Cyrillic in shipped JS. Add new exceptions only with a
   comment explaining why the literal is publishable.
+- The npm updater is double-gated: loopback-only request fence in
+  `lib/plugin-updater.js` **and** the `updates` Config off-switch. Both must stay
+  in place; without the switch it can overwrite this checkout from the registry.
 - Do not add network calls to the settings form path that are not same-origin.
 
 ## Known limitations / next steps
@@ -290,9 +364,10 @@ regression gate for edits to `lib/client.js`.
 - `lib/client.js` is built output; when the private TypeScript source is next
   regenerated, the settings-section registration and the route-backed form must
   be carried over there (or this fix will regress on the next publish).
-- The one-click auto-updater (`/api/dsh-gitea/update`) installs from npm into the
-  profile; it is not exercised in this checkout and the sidebar form can show a
-  stale current version until the first check completes.
+- The one-click auto-updater exists but is **disabled here** (`updates: false`)
+  and is not exercised. It installs the npm tarball into the profile and would
+  replace the `link:` checkout; only re-enable it after verifying what npm would
+  install and accepting the loss of the fork patch.
 - Additional `instances` are displayed read-only in the UI; they are configured
   through the profile/config document.
 - `plugins.item` remains registered for older DSH cores; on 0.2.x it is only a
@@ -325,3 +400,23 @@ Diagnosis and changes made while restoring the settings UI:
    a mounted Connection as authoritative for reads and writes; regression tests
    cover an admitted non-loopback request. Host code changes need a Host reload
    (HMR root or `dsh web` restart) before they are observable.
+
+## Session log — fork hardening (2026-10-22, later)
+
+After the settings UI worked and the plan to keep this as a living fork was
+accepted:
+
+1. Found that the one-click updater would install
+   `@goodandready/dsh-gitea@<npm latest>` over the `link:` checkout and silently
+   revert every fork patch. Added a volatile `updates` Config boolean (default
+   `true`), wired `isEnabled: () => live().updates !== false` into
+   `lib/plugin-updater.js` (all requests answer 403 `code: "disabled"` when off),
+   hid the updater panel and skipped its registry poll in `lib/client.js`, and
+   added a "Plugin Updates" checkbox to the form. This deployment sets
+   `updates: false`.
+2. Formalized the fork: documented "watch upstream, never develop against it",
+   sync ritual, conflict hotspots, version format `0.7.40-dsh.1`, tag convention,
+   and the npm/upstream push prohibitions here; rewrote the README set as fork
+   documentation with upstream attribution.
+3. Added regression tests for the off-switch (text wiring + behavioral 403 from a
+   fake web server). `npm test`, `npm run test:leaks`, and `node --check` pass.

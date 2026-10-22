@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.7.40-dsh.1] - 2026-10-22
+
+### Fork hardening: updater off-switch, docs, versioning
+- **In-UI npm updater can be switched off**: new volatile `updates` Config field
+  (default `true`). When `false`, the settings form hides the auto-updater panel and
+  skips its registry poll, and `POST/GET /api/dsh-gitea/update` answers
+  `403 {"code":"disabled"}` for every request. This deployment keeps `updates: false`
+  because the updater installs `@goodandready/dsh-gitea@<npm latest>` and would replace
+  the `link:` checkout with the upstream tarball, reverting every fork patch. The gate
+  is applied server-side (`lib/plugin-updater.js` `isEnabled`) as well as in the UI.
+- **Fork identity**: version is now `0.7.40-dsh.1`, package is marked `private` to make
+  accidental `npm publish` fail, and `repository`/`homepage`/`bugs` point at our Forgejo.
+  `upstream` remote tracks `GooDAnDReaDY/dsh-gitea` for deliberate syncs; GitHub is not a
+  push target.
+- **Documentation is ours now**: `README.md` rewritten as the fork's operational README
+  (install on this server, settings, security, upstream sync, versioning);
+  `README.ru.md` and `README.zh.md` rewritten as shorter fork translations instead of
+  upstream marketing snapshots. `AGENTS.md` gained the fork/upstream policy, sync ritual,
+  conflict hotspots, version/tag convention, updater off-switch contract, and this
+  session's log.
+- **Regression tests**: `test/client-settings.test.mjs` now asserts the off-switch wiring
+  (Config field, UI gating, no registry poll when off) and proves the updater refuses
+  `GET`/`HEAD`/`POST` with a behavioral fake-server test.
+
 ## [0.7.40] - 2026-10-22
 
 ### Settings UI restored on DSH 0.2.x, local-checkout installs fixed
