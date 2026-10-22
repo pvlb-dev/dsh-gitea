@@ -18,6 +18,12 @@
   with `503` when the Host Settings service cannot persist, instead of reporting a save
   that would be lost on restart. `settings/document-updated` now re-projects the served
   document for this namespace, so writes from other settings surfaces apply live.
+- **Settings page no longer 403s on trusted LAN/Tailscale URLs**: `lib/http-guard.js`
+  treated an admitted DSH Connection request as "no decision" and fell through to its own
+  loopback-only fallback, so a valid browser session on a configured trusted hostname got
+  `403` from `/dsh-gitea/config`. A mounted Connection is now authoritative for reads and
+  writes; the fallback runs only when it is absent. Regression tests cover admitted,
+  rejected, and throwing Connection faces.
 - **Local checkout installs work**: new `scripts/dev-link-dsh.mjs` /
   `npm run dev:link` link the DSH peer packages into the checkout so a `link:` install
   (Plugin Manager local path) can import the Host half. README documents the

@@ -18,7 +18,7 @@ import { dirname, extname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)))
-const SHIPPED = ['lib', 'assets', 'cordis.patch.yml', 'package.json', 'README.md', 'README.ru.md', 'README.zh.md', 'LICENSE']
+const SHIPPED = ['lib', 'assets', 'cordis.patch.yml', 'package.json', 'AGENTS.md', 'README.md', 'README.ru.md', 'README.zh.md', 'LICENSE']
 const TEXT_EXTENSIONS = new Set(['.js', '.mjs', '.json', '.yml', '.yaml', '.md', '.txt', '.css'])
 
 const checks = [

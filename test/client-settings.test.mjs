@@ -4,7 +4,7 @@ import { dirname, join } from 'node:path'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
 
-import { getWriteRejectionStatus, isLoopbackAddress, isTrustedHost } from '../lib/http-guard.js'
+import { getRejectionStatus, getWriteRejectionStatus, isLoopbackAddress, isTrustedHost } from '../lib/http-guard.js'
 import { credentialRefStatus, unwrapVolatile } from '../lib/secrets.js'
 import { normalizeExternalUrl } from '../lib/url-safety.js'
 
@@ -74,6 +74,38 @@ test('http guard keeps loopback-only fallbacks and same-origin writes', () => {
   assert.equal(getWriteRejectionStatus(baseRequest({ host: '127.0.0.1:3080', 'sec-fetch-site': 'cross-site' })), 403)
   assert.equal(getWriteRejectionStatus(baseRequest({ host: '127.0.0.1:3080', origin: 'http://evil.example' })), 403)
   assert.equal(getWriteRejectionStatus(baseRequest({ host: '127.0.0.1:3080' }, '203.0.113.9')), 403)
+})
+
+test('a mounted Connection fence is authoritative for trusted non-loopback hosts', () => {
+  // Regression: an admitted Tailscale/LAN request used to fall through to the
+  // loopback-only fallback and become 403 even though Connection admitted it.
+  const admitted = { requestRejection: () => undefined }
+  const rejected401 = { requestRejection: () => 401 }
+  const rejected403 = { requestRejection: () => 403 }
+  const throwing = { requestRejection: () => { throw new Error('connection failure') } }
+  const trustedTailscaleRequest = {
+    headers: {
+      host: 'harness.example.ts.net',
+      origin: 'https://harness.example.ts.net',
+      'sec-fetch-site': 'same-origin',
+    },
+    socket: { remoteAddress: '100.64.0.8' },
+  }
+
+  assert.equal(getRejectionStatus(trustedTailscaleRequest, { connection: admitted }), undefined)
+  assert.equal(getWriteRejectionStatus(trustedTailscaleRequest, { connection: admitted }), undefined)
+  // Connection is authoritative about same-origin for writes too; the guard must
+  // not re-compare a proxy-rewritten Host against the browser Origin.
+  assert.equal(getWriteRejectionStatus(
+    { ...trustedTailscaleRequest, headers: { ...trustedTailscaleRequest.headers, origin: 'https://proxy.internal' } },
+    { connection: admitted },
+  ), undefined)
+  assert.equal(getRejectionStatus(trustedTailscaleRequest, { connection: rejected401 }), 401)
+  assert.equal(getRejectionStatus(trustedTailscaleRequest, { connection: rejected403 }), 403)
+  assert.equal(getRejectionStatus(trustedTailscaleRequest, { connection: throwing }), 403)
+  // Without Connection the same request stays fail-closed.
+  assert.equal(getRejectionStatus(trustedTailscaleRequest), 403)
+  assert.equal(getWriteRejectionStatus(trustedTailscaleRequest), 403)
 })
 
 test('credential references reject token-shaped input', () => {

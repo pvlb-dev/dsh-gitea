@@ -24,26 +24,37 @@ which checks prove a change works. Read it before editing `lib/`.
 
 ## This deployment (facts checked on 2026-10-22)
 
-- Harness: `dsh 0.2.0-rc.2`, installed at
-  `/opt/node-v24.22.0-linux-x64/lib/node_modules/@deepseek-ai/dsh`.
-- Profile: `web` → `/home/dsh/.dsh/profiles/web`; Web GUI on
-  `http://127.0.0.1:3080` (also trusted via a Tailscale hostname).
+- Harness: `dsh 0.2.0-rc.2`; the installed package is the `@deepseek-ai/dsh`
+  directory in `node_modules` (resolve it from the running `dsh` binary or
+  `$DSH_PACKAGE_DIR`).
+- Profile: `web`, directory `$DSH_PROFILE_DIR`; Web GUI on
+  `http://127.0.0.1:3080` (also served to the tailnet through a reverse proxy on
+  a trusted HTTPS hostname).
 - The profile patch is `<profile>/cordis.patch.yml`; profile dependencies are in
   `<profile>/package.json`. Both are **outside this workspace**.
-- `pnpm` exists at `/opt/node/bin/pnpm`, but that directory is **not on the
-  DSH server's PATH**. Two consequences:
-  1. Plugin Manager's install/remove used to fail with `spawn pnpm ENOENT`.
-  2. The profile patch now names it explicitly:
+- `pnpm` is installed beside the node binary (for example `/opt/node/bin/pnpm`),
+  but that directory is **not on the DSH server's PATH**. Two consequences:
+  1. Plugin Manager's install/remove fails with `spawn pnpm ENOENT`.
+  2. The profile patch must name it explicitly:
      ```yaml
      - id: plugin-manager
        name: "@deepseek-ai/dsh-plugin-manager"
        config:
-         pnpmCommand: /opt/node-v24.22.0-linux-x64/bin/pnpm
+         pnpmCommand: /opt/node/bin/pnpm
      ```
-     Keep this entry (schema defaults fill the other fields).
+     Keep that entry (schema defaults fill the other fields).
 - Installed in the profile as a **`link:` dependency** to this checkout (that is
   what Plugin Manager does for an absolute local path). The `dev:link` bootstrap
   below is required for such an install.
+- The profile patch also opts this checkout into HMR while developing:
+  ```yaml
+  - id: hmr
+    config:
+      root: ["/path/to/dsh-gitea"]
+  ```
+  With that root, Host-half edits are picked up without restarting `dsh web`.
+  Without it (default `root: []`), Host code changes need a restart; the client
+  bundle is served per-request and reloads with a page hard-refresh.
 - Commit identity for this repo: `dsh <dsh@pvlb.dev>`.
 
 ## Ground rules
@@ -148,16 +159,23 @@ which checks prove a change works. Read it before editing `lib/`.
   `lib/http-guard.js`. That delegates to `ctx.connection.requestRejection` when
   available (401/403 for unauthenticated remote clients) and otherwise falls
   back to loopback-only, same-origin checks.
+- When a DSH Connection service is mounted, its fence is **authoritative for both
+  reads and writes**: it knows the deployment's trusted authorities and the
+  browser session cookie. `getRejectionStatus` must return immediately once
+  `requestRejection` returns `undefined`; falling through to the loopback-only
+  fallback turned admitted Tailscale/LAN requests into `403`. Do not reintroduce a
+  duplicate Host/Origin comparison after the Connection admitted a write.
 - Browser `fetch` from the GUI sends the auth cookie; shell `curl` without it
   correctly gets `401 {"code":"unauthorized"}`. That 401 is expected, not a
-  route bug.
+  route bug. A `403` *with* a valid session over a trusted hostname is the guard,
+  not authentication.
 
 ## Install / development loop
 
 ### 1. Bootstrap a local checkout (once)
 
 ```bash
-cd /home/dsh/Projects/dsh-gitea
+cd /path/to/dsh-gitea
 node scripts/dev-link-dsh.mjs     # alias: npm run dev:link
 ```
 
@@ -173,7 +191,7 @@ and never modifies the DSH install. A registry install does not need it.
 Preferred (agent tools, approval may be required):
 
 ```
-plugin_manager action=install_bundle target=/home/dsh/Projects/dsh-gitea enabled=true
+plugin_manager action=install_bundle target=/path/to/dsh-gitea enabled=true
 ```
 
 To pick up code changes in a `link:` install, toggle the bundle off and on:
@@ -246,6 +264,7 @@ regression gate for edits to `lib/client.js`.
 | Install fails with `spawn pnpm ENOENT` | `pnpm` missing from the server's PATH | set `plugin-manager.pnpmCommand` in the profile patch |
 | No Gitea entry under Settings | wrong/known-dead slot (`settings.plugin.item`) or client bundle not loaded | register `settings.section`; check slot occupants; hard-refresh |
 | Settings page renders only "unavailable" | form gated on browser `configForms` (memory mode on non-loopback) | use the Host route + `writable` response (already implemented) |
+| Settings page shows `HTTP 403` over a LAN/Tailscale URL | Connection admitted the request but the guard fell through to the loopback-only fallback (fixed), or the Host-half module is stale | update `lib/http-guard.js`; reload Host code (HMR root or restart `dsh web`); hard-refresh the page |
 | Configure page missing on Plugins | row key mismatch | key must be `@goodandready/dsh-gitea#dsh-gitea` |
 | Settings fields empty / not projected | Config field without `.volatile()` | mark the field volatile |
 | Save appears successful but is lost on restart | write bypassed the Settings service | persist via `servedScope.update`; check `writable` |
@@ -299,3 +318,10 @@ Diagnosis and changes made while restoring the settings UI:
 4. Documented the install/verification loop here and in `README.md`; added
    mirror-safe tests and a leak scan so `npm test` / `npm run test:leaks` work in
    the public tree.
+5. The remaining `HTTP 403` on a Tailscale-served page came from
+   `lib/http-guard.js`: after `connection.requestRejection()` admitted a request
+   it returned `undefined`, but the guard then fell through to its own
+   loopback-only fallback and rejected the trusted hostname. The guard now treats
+   a mounted Connection as authoritative for reads and writes; regression tests
+   cover an admitted non-loopback request. Host code changes need a Host reload
+   (HMR root or `dsh web` restart) before they are observable.
