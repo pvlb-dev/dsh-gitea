@@ -227,11 +227,36 @@ dsh plugin --profile web add @goodandready/dsh-gitea
 
 重启 DSH Web UI 并强制刷新浏览器页面（`Ctrl+F5` 或 `Cmd+Shift+R`）。
 
+### 从本地仓库安装
+
+Plugin Manager 会用 pnpm 的 `link:` 协议安装本地绝对路径，而 pnpm 不会从被链接包的目录
+解析其 peer 依赖，Loader 因此报 `failed to import`（通常是
+`Cannot find package '@deepseek-ai/schemastery'`）。在仓库中执行一次：
+
+```bash
+cd /path/to/dsh-gitea
+node scripts/dev-link-dsh.mjs   # 或：npm run dev:link
+```
+
+脚本会把运行中 DSH 安装里的相关包软链到本仓库的 `node_modules/`（已被 git 忽略），
+不会修改 DSH 安装本身。从 npm 仓库安装时无需此步骤。
+
+> 如果 Plugin Manager 报 `spawn pnpm ENOENT`，说明 pnpm 不在 DSH 服务进程的 `PATH` 中。
+> 可在 profile patch 中显式指定：
+>
+> ```yaml
+> - id: plugin-manager
+>   name: "@deepseek-ai/dsh-plugin-manager"
+>   config:
+>     pnpmCommand: /opt/node/bin/pnpm   # pnpm 的实际路径
+> ```
+
 ---
 
 ## ⚙️ 配置指南
 
-在 Web UI 中打开 **设置 -> 插件 -> Gitea**：
+在 Web UI 中打开 **设置 → Gitea**（当前 DSH 版本也可通过
+**插件 → Gitea 包 → 行 → Configure** 打开同一表单）：
 
 ```yaml
 # config.yaml
@@ -244,7 +269,7 @@ dsh-gitea:
 
 ### 配置参数速查表
 
-设置中心 **Settings -> Plugins -> Gitea** 中的卡片将全部 17 个配置项组织为基础与高级设置区域：
+插件设置页将全部 17 个配置项组织为基础与高级设置区域：
 
 | 配置项 | 数据类型 | 默认值 | 区域 | 功能说明 |
 |:---|:---|:---|:---|:---|

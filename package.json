@@ -1,6 +1,6 @@
 {
   "name": "@goodandready/dsh-gitea",
-  "version": "0.7.39",
+  "version": "0.7.40",
   "description": "Enterprise Gitea & Forgejo integration for DeepSeek Harness: 20+ issue/PR/worktree tools and a real-time Git status chip in chat.",
   "type": "module",
   "main": "lib/index.js",
@@ -21,7 +21,8 @@
   ],
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "test:leaks": "node scripts/leak-scan.mjs"
+    "test:leaks": "node scripts/leak-scan.mjs",
+    "dev:link": "node scripts/dev-link-dsh.mjs"
   },
   "keywords": [
     "dsh",

@@ -230,19 +230,47 @@ The drawer interface includes a dedicated **Gitea Hub** backed by `/dsh-gitea/hu
 
 ## 📦 Installation
 
-Install via DeepSeek Harness CLI:
+Install the published package via DeepSeek Harness CLI:
 
 ```bash
 dsh plugin --profile web add @goodandready/dsh-gitea
 ```
 
-Restart DSH Web UI and perform a hard-refresh (`Ctrl+F5` or `Cmd+Shift+R`).
+Then reload the Web UI and perform a hard-refresh (`Ctrl+F5` or `Cmd+Shift+R`).
+
+### Installing from a local checkout
+
+The Plugin Manager installs an absolute local path with pnpm's `link:` protocol.
+pnpm does not resolve a linked package's own dependencies or peers from the
+target directory, so the Loader reports `failed to import` (usually
+`Cannot find package '@deepseek-ai/schemastery'`). Run the bootstrap once in the
+checkout to link the packages the plugin imports from the running DSH install,
+then install the path again:
+
+```bash
+cd /path/to/dsh-gitea
+node scripts/dev-link-dsh.mjs   # or: npm run dev:link
+```
+
+`node_modules/` is gitignored; the script never writes to the DSH installation.
+A registry install does not need this step.
+
+> If Plugin Manager reports `spawn pnpm ENOENT`, pnpm is not on the DSH server's
+> `PATH`. Point it at the binary in the profile patch:
+>
+> ```yaml
+> - id: plugin-manager
+>   name: "@deepseek-ai/dsh-plugin-manager"
+>   config:
+>     pnpmCommand: /opt/node/bin/pnpm   # wherever pnpm lives
+> ```
 
 ---
 
 ## ⚙️ Configuration
 
-Navigate to **Settings -> Plugins -> Gitea**:
+Open **Settings → Gitea** in the Web UI (on current DSH versions the same form
+is also reachable from **Plugins → Gitea bundle → row → Configure**):
 
 ```yaml
 # config.yaml
@@ -255,7 +283,7 @@ dsh-gitea:
 
 ### Settings Reference Table
 
-The plugin settings card in **Settings -> Plugins -> Gitea** organizes all 17 schema options into intuitive Core and Advanced sections:
+The plugin settings page organizes all 17 schema options into intuitive Core and Advanced sections:
 
 | Key | Type | Default | Section | Description |
 |:---|:---|:---|:---|:---|

@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.7.40] - 2026-10-22
+
+### Settings UI restored on DSH 0.2.x, local-checkout installs fixed
+- **Settings page registered where DSH 0.2.x renders it**: `lib/client.js` now registers a
+  `settings.section` page (`Settings → Gitea`) in addition to the keyed
+  `plugins.row.config` page (`@goodandready/dsh-gitea#dsh-gitea`). The old
+  `settings.plugin.item` seat no longer exists on 0.2.x and was inert; `plugins.item` is
+  kept only as a compatibility seat for older cores.
+- **Settings form no longer disappears on remote/LAN pages**: the form previously gated
+  itself on the browser `configForms` mirror, which reports `unavailable` on non-loopback
+  pages (remote sessions keep preferences process-local). It now reads and saves through
+  its own Host route `/dsh-gitea/config`, renders as soon as that read succeeds, and
+  shows a retry action on failure. Per-field `configForms` writes were removed; saving is
+  one transactional POST instead of duplicate writes.
+- **Writability is explicit**: `/dsh-gitea/config` answers `writable`, and `POST` refuses
+  with `503` when the Host Settings service cannot persist, instead of reporting a save
+  that would be lost on restart. `settings/document-updated` now re-projects the served
+  document for this namespace, so writes from other settings surfaces apply live.
+- **Local checkout installs work**: new `scripts/dev-link-dsh.mjs` /
+  `npm run dev:link` link the DSH peer packages into the checkout so a `link:` install
+  (Plugin Manager local path) can import the Host half. README documents the
+  `spawn pnpm ENOENT` profile-patch fix as well.
+- **Public tree hygiene**: `npm test` and `npm run test:leaks` now run in the published
+  tree (`test/client-settings.test.mjs`, `scripts/leak-scan.mjs`) instead of failing on
+  files stripped from the mirror.
+
 ## [0.7.39] - 2026-10-21
 
 ### Public Mirror Bidirectional Sync Dashboard & Webhook Sandbox (#343, #345)
