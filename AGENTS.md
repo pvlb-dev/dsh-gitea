@@ -35,14 +35,15 @@ Labels are per repository. Every issue gets three axes when it is opened:
 | priority | `priority/now`, `priority/next`, `priority/later` |
 
 - `needs-operator` only for operator actions/decisions.
-- `gitea_issue_create` cannot set labels yet (#6). Create, then
-  `gitea_labels {action: "set"}` with **numeric ids**. `gitea_labels list` shows
-  the ids since `4d77e9f`; `set` still ignores names until #6. On an older
-  plugin build, read ids from
-  `GET /api/v1/repos/<owner>/<repo>/labels?limit=100` with `GITEA_TOKEN`.
-- Never run `gitea_label_bootstrap`: it hard-codes the upstream taxonomy (#8)
-  and would add ~30 foreign labels. Create house labels with
-  `gitea_labels {action: "create"}`.
+- `gitea_issue_create` accepts `labels` (names or numeric ids), `assignee` and
+  `milestone` since #6. `gitea_labels {action: "set"}` still takes **numeric
+  ids**; `gitea_labels list` shows them since `4d77e9f`. On an older plugin
+  build, read ids from `GET /api/v1/repos/<owner>/<repo>/labels?limit=100` with
+  `GITEA_TOKEN`.
+- `gitea_label_bootstrap` defaults to the pvlb house set and is idempotent
+  (#8); `taxonomy: "upstream"` opts into the legacy 34-label set. Its dry run
+  now lists exactly what it would create. Still prefer it over hand-creating the
+  house labels.
 - Triage existing issues by reading them; propose priority changes, do not
   silently rewrite someone else's labels.
 
@@ -57,10 +58,10 @@ Consumers mirror this table and link here.
 | `gitea_issue_list` maxes out at 20 rows | formatter `data.slice(0, 20)` | `limit <= 20`, page through | #2 | fixed in `4d77e9f` |
 | empty/unknown results print a bare `OK` | `formatters.js` fallbacks | verify via REST or a second query | #5 | fixed in `4d77e9f` |
 | `gitea_labels list` hides numeric ids | generic array formatter | REST `/labels` | #7 | fixed in `4d77e9f` |
-| `gitea_repo_contents` returns the path | `formatters.js` `data.path` branch | clone, or REST `/contents/<path>` | #3 | open |
+| `gitea_repo_contents` returns the path | `formatters.js` `data.path` branch | clone, or REST `/contents/<path>` | #3 | fixed in `077ffc6` (body, 20 KB cap, root listing) |
 | `gitea_wiki get` returns no content | API is metadata-only; body lives in `<repo>.wiki.git` | metadata formatter + body caveat; clone the wiki repo for text | #4 | metadata fixed in `30ce29d`; body still needs clone |
-| `gitea_issue_create` drops labels/assignee/milestone | `issues.js` create handler + tool def | create, then `gitea_labels set` | #6 | open |
-| `gitea_label_bootstrap` uses the upstream taxonomy | `label-bootstrap.js` | create house labels by hand | #8 | open |
+| `gitea_issue_create` drops labels/assignee/milestone | `issues.js` create handler + tool def | create, then `gitea_labels set` | #6 | fixed in `6941048` (names or ids) |
+| `gitea_label_bootstrap` uses the upstream taxonomy | `label-bootstrap.js` | create house labels by hand | #8 | fixed in `178a99f` (house default, upstream opt-in, truthful dry run) |
 | `gitea_wiki list` errors on an empty wiki | `listWikiPages` surfaced the API's 404 | none | #9 | fixed in `913013a` |
 | `gitea_wiki` has no create/update/delete | handler/defs/client implemented only list/get | clone the wiki repo, commit, push | #10 | fixed in `fbca62a` |
 
@@ -645,3 +646,27 @@ body. The operator asked for the wiki trio first; #3, #6 and #8 remain open.
    that slug. The probe page was deleted afterwards (wiki empty again).
 4. `npm test` 60/60, leak scan clean, `node --check` clean. Host edits were
    picked up by HMR; no bundle toggle was needed.
+
+## Session log — closing the remaining tool bugs (2026-10-24)
+
+The operator asked to clear the remaining open issues before bumping to 0.8.
+
+1. #3 (`077ffc6`, PR #16): `gitea_repo_contents` decoded nothing because
+   `formatters.js` hit `data.path` first; `getContents()` also rejected `""`.
+   Added a content formatter (base64 decode, 20 000-char visible cap, `html_url`
+   + `download_url`, empty/missing-content wording) and a `/contents` root
+   request. `test/repo-contents.test.mjs`.
+2. #6 (`6941048`, PR #17): declared and forwarded `labels`/`assignee`/`milestone`
+   on `gitea_issue_create`; label names resolve case-insensitively against
+   `listLabels`, order is preserved, duplicates collapse and an unknown name
+   fails before creating. `test/issue-create.test.mjs`.
+3. #8 (`178a99f`, PR #18): `gitea_label_bootstrap` now defaults to the 11-label
+   pvlb house set; `taxonomy: "upstream"` keeps the legacy 34. The dry run
+   returns `missing`/`missingCount` and lists them (the old formatter counted
+   `created`, so it always said 0). `test/label-bootstrap.test.mjs`.
+4. Live checks: repo contents body/root/truncation; issue create with
+   `TYPE/BUG` + assignee + milestone on `ml-lab/tardits` (probe issue closed,
+   milestone deleted); label bootstrap dry run 10 → apply 10 → dry run 0 with
+   exactly the 11 house labels left on the lab repo.
+5. `npm test` 81/81, leak scan clean, `node --check` clean. Next: the
+   tester-Deeps sweep, then the 0.8 bump.

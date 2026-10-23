@@ -13,6 +13,17 @@
   for delete. `list` shows the canonical `pageName` slug that writes must use
   (#10, `fbca62a`).
 
+### Repository contents, issue create, and label bootstrap
+- `gitea_repo_contents` returns the decoded file body (caps at 20 000 chars with
+  a download link) and accepts `path: ""` for the repository root (#3,
+  `077ffc6`).
+- `gitea_issue_create` accepts `labels` (names or numeric ids), `assignee` and
+  `milestone`; unknown label names fail instead of creating an unlabeled issue
+  (#6, `6941048`).
+- `gitea_label_bootstrap` defaults to the pvlb house set and its dry run lists
+  exactly what is missing; `taxonomy: "upstream"` is the legacy opt-in (#8,
+  `178a99f`).
+
 ## [0.7.40-dsh.7] - 2026-10-24
 
 ### Never override the default npm registry during updates
