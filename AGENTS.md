@@ -89,7 +89,7 @@ this table — same sitting.
   `@goodandready/dsh-gitea`; the old scoped package stays in the registry for
   pinned installs). The bundle row id and Settings namespace stay `dsh-gitea`, so
   the `plugins.row.config` key is now `dsh-gitea#dsh-gitea`.
-  Fork version: `0.7.40-dsh.5` (see "Versioning and tags"). Runtime peer line:
+  Fork version: `0.7.40-dsh.6` (see "Versioning and tags"). Runtime peer line:
   DSH `0.1.7-rc.2` / `0.2.0-rc.x` (`peerDependencies`).
 - Remotes:
   - `origin` = `ssh://git@git.pvlb.dev/dsh-plugins/dsh-gitea.git` — our private
@@ -130,6 +130,9 @@ this table — same sitting.
   Without it (default `root: []`), Host code changes need a restart; the client
   bundle is served per-request and reloads with a page hard-refresh.
 - Commit identity for this repo: `dsh <dsh@pvlb.dev>`.
+- Logs: the web service writes to journald
+  (`journalctl -u dsh-web -n 100 --no-pager`); `dsh plugin`/pnpm install
+  diagnostics live in `<profile>/.plugin-manager/logs/operation-*/pnpm.log`.
 
 ## Fork status and upstream sync
 
@@ -160,10 +163,10 @@ this table — same sitting.
 
 ### Versioning and tags
 
-- Version format `<upstream base>-dsh.<n>` (currently `0.7.40-dsh.5`): semver
+- Version format `<upstream base>-dsh.<n>` (currently `0.7.40-dsh.6`): semver
   valid, visibly a fork, and still comparable to upstream releases.
 - Tag every state that is live on the server as `v<version>` (for example
-  `v0.7.40-dsh.5`). Rollback = `git checkout <tag>`, toggle the bundle off/on,
+  `v0.7.40-dsh.6`). Rollback = `git checkout <tag>`, toggle the bundle off/on,
   hard-refresh.
 - Add a fork entry to `CHANGELOG.md` per release; leave upstream entries intact.
 
@@ -444,7 +447,8 @@ regression gate for edits to `lib/client.js`.
 | Save appears successful but is lost on restart | write bypassed the Settings service | persist via `servedScope.update`; check `writable` |
 | Settings page has no Plugin Auto-Updater panel | `updates: false` — the fork default in this profile | expected; enabling it lets the Forgejo registry package replace the `link:` checkout |
 | `/api/dsh-gitea/update` answers 403 `code: "disabled"` | Config `updates: false` | expected on this fork; never remove the gate |
-| A `link:` checkout was replaced by the published package | the updater (or a manual `dsh plugin add`) installed the registry tarball | `git checkout v0.7.40-dsh.5`, toggle the bundle off/on, keep `updates: false` for dev |
+| A `link:` checkout was replaced by the published package | the updater (or a manual `dsh plugin add`) installed the registry tarball | `git checkout v0.7.40-dsh.6`, toggle the bundle off/on, keep `updates: false` for dev |
+| Plugin update fails with `Plugin update failed: …` | `dsh plugin` cannot find pnpm on the DSH unit's PATH, or pnpm itself failed | check `<profile>/.plugin-manager/logs/operation-*/pnpm.log`; 0.7.40-dsh.6 prepends the Node bin dir and `PNPM_HOME` to the updater PATH |
 | Tools resolve wrong owner/repo | no `defaultOwner`/`defaultRepo` and no git origin in the session cwd | configure defaults or pass owner/repo |
 | Plugin silently absent after a DSH upgrade | peer range does not name the new prerelease line | extend the `peerDependencies` range for every `@deepseek-ai/dsh-*` peer |
 
@@ -589,3 +593,16 @@ accepted:
    placeholders, and made the empty hint show the webhook URL.
 2. Released `0.7.40-dsh.5`; the client bundle is served per request, so a hard
    refresh picks it up without restarting DSH.
+
+## Session log — updater PATH and error visibility (2026-10-24)
+
+1. The in-UI update failed with a generic 503: the DSH web unit starts with a
+   minimal PATH, so the spawned `dsh plugin add` could not find pnpm. Prepend
+   `dirname(process.execPath)` and `PNPM_HOME` to the child PATH.
+2. Log the failure and return the detail in the 503 body; the settings panel now
+   shows the real cause. Plugin install diagnostics live in
+   `<profile>/.plugin-manager/logs/operation-*/pnpm.log`; service logs are in
+   `journalctl -u dsh-web`.
+3. Released `0.7.40-dsh.6`. An already-installed older updater cannot install
+   this fix itself; bootstrap it once with a manual `dsh plugin add <tarball>`
+   (pnpm on PATH), then the in-UI updater works.

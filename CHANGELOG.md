@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.7.40-dsh.6] - 2026-10-24
+
+### Make the in-UI updater work from a minimal service PATH
+- `installExact` prepends the Node binary's directory and `PNPM_HOME` to the
+  `dsh plugin` child PATH, so the updater can find pnpm when DSH runs as a
+  systemd unit with a minimal environment.
+- The updater now logs the failure and returns the detail in the 503 body, so
+  the settings panel shows the real cause instead of "see server logs". Plugin
+  install diagnostics are in
+  `<profile>/.plugin-manager/logs/operation-*/pnpm.log`.
+
 ## [0.7.40-dsh.5] - 2026-10-23
 
 ### Fix raw locale keys on the settings page
