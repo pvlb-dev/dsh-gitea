@@ -12,6 +12,7 @@ import {
   latestVersion,
   packumentLatest,
   registryAuthKey,
+  tarballFor,
   updaterPath,
 } from '../lib/plugin-updater.js'
 
@@ -105,12 +106,33 @@ test('updaterPath puts the node bin dir and PNPM_HOME before PATH', () => {
   assert.deepEqual(parts, ['/opt/node/bin', '/opt/pnpm', '/usr/bin', '/bin'])
 })
 
-test('createRegistryUserconfig points the package at Forgejo but keeps DSH peers on npmjs', async () => {
+test('tarballFor resolves the exact version tarball URL', async () => {
+  const url = 'https://git.pvlb.dev/api/packages/dsh-plugins/npm/dsh-gitea/-/0.7.40-dsh.7/dsh-gitea-0.7.40-dsh.7.tgz'
+  await withMockFetch(async () => ({
+    ok: true,
+    json: async () => ({ versions: { '0.7.40-dsh.7': { dist: { tarball: url } } } }),
+  }), async (calls) => {
+    assert.equal(await tarballFor(PACKAGE, REGISTRY, '0.7.40-dsh.7'), url)
+    assert.equal(calls.length, 1)
+    assert.equal(calls[0].url, `${REGISTRY}${encodeURIComponent(PACKAGE)}`)
+  })
+})
+
+test('tarballFor rejects a version without a tarball', async () => {
+  await withMockFetch(async () => ({
+    ok: true,
+    json: async () => ({ versions: {} }),
+  }), async () => {
+    await assert.rejects(tarballFor(PACKAGE, REGISTRY, '9.9.9'), /No tarball URL/)
+  })
+})
+
+test('createRegistryUserconfig keeps the default registry and adds only our auth', async () => {
   const config = await createRegistryUserconfig(REGISTRY, PACKAGE, 'tok', '/nonexistent/.npmrc')
   try {
     const content = await readFile(config.file, 'utf8')
-    assert.match(content, /^registry=https:\/\/git\.pvlb\.dev\/api\/packages\/dsh-plugins\/npm\/$/m)
-    assert.match(content, /^@deepseek-ai:registry=https:\/\/registry\.npmjs\.org\/$/m)
+    assert.doesNotMatch(content, /^registry=/m)
+    assert.doesNotMatch(content, /@deepseek-ai:registry=/)
     assert.match(content, /^\/\/git\.pvlb\.dev\/api\/packages\/dsh-plugins\/npm\/:_authToken=tok$/m)
   } finally {
     await config.cleanup()
@@ -136,8 +158,8 @@ test('createRegistryUserconfig carries the user config forward', async () => {
   try {
     const content = await readFile(config.file, 'utf8')
     assert.match(content, /^minimum-release-age=1440$/m)
-    assert.match(content, /^registry=/m)
-    assert.match(content, /^@deepseek-ai:registry=/m)
+    assert.doesNotMatch(content, /^registry=/m)
+    assert.doesNotMatch(content, /@deepseek-ai:registry=/)
   } finally {
     await config.cleanup()
     await rm(dir, { recursive: true, force: true })
