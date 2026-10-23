@@ -1,6 +1,6 @@
 {
   "name": "dsh-gitea",
-  "version": "0.7.40-dsh.4",
+  "version": "0.7.40-dsh.5",
   "private": true,
   "description": "Private deployment fork of the Gitea/Forgejo integration for DeepSeek Harness: 20+ issue/PR/worktree tools, settings page, and a real-time Git status chip.",
   "type": "module",

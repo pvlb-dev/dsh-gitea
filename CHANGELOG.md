@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.40-dsh.5] - 2026-10-23
+
+### Fix raw locale keys on the settings page
+- The events panel referenced `eventsTitle` / `eventsEmptyHint`, which were
+  missing from both dictionaries, so the settings page rendered the raw keys at
+  the bottom. Added English/Chinese entries and made the local `makeT` fallback
+  interpolate `{param}` placeholders; the empty hint now shows the webhook URL.
+
 ## [0.7.40-dsh.4] - 2026-10-23
 
 ### Package renamed to dsh-gitea

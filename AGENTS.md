@@ -89,7 +89,7 @@ this table — same sitting.
   `@goodandready/dsh-gitea`; the old scoped package stays in the registry for
   pinned installs). The bundle row id and Settings namespace stay `dsh-gitea`, so
   the `plugins.row.config` key is now `dsh-gitea#dsh-gitea`.
-  Fork version: `0.7.40-dsh.4` (see "Versioning and tags"). Runtime peer line:
+  Fork version: `0.7.40-dsh.5` (see "Versioning and tags"). Runtime peer line:
   DSH `0.1.7-rc.2` / `0.2.0-rc.x` (`peerDependencies`).
 - Remotes:
   - `origin` = `ssh://git@git.pvlb.dev/dsh-plugins/dsh-gitea.git` — our private
@@ -160,10 +160,10 @@ this table — same sitting.
 
 ### Versioning and tags
 
-- Version format `<upstream base>-dsh.<n>` (currently `0.7.40-dsh.4`): semver
+- Version format `<upstream base>-dsh.<n>` (currently `0.7.40-dsh.5`): semver
   valid, visibly a fork, and still comparable to upstream releases.
 - Tag every state that is live on the server as `v<version>` (for example
-  `v0.7.40-dsh.4`). Rollback = `git checkout <tag>`, toggle the bundle off/on,
+  `v0.7.40-dsh.5`). Rollback = `git checkout <tag>`, toggle the bundle off/on,
   hard-refresh.
 - Add a fork entry to `CHANGELOG.md` per release; leave upstream entries intact.
 
@@ -444,7 +444,7 @@ regression gate for edits to `lib/client.js`.
 | Save appears successful but is lost on restart | write bypassed the Settings service | persist via `servedScope.update`; check `writable` |
 | Settings page has no Plugin Auto-Updater panel | `updates: false` — the fork default in this profile | expected; enabling it lets the Forgejo registry package replace the `link:` checkout |
 | `/api/dsh-gitea/update` answers 403 `code: "disabled"` | Config `updates: false` | expected on this fork; never remove the gate |
-| A `link:` checkout was replaced by the published package | the updater (or a manual `dsh plugin add`) installed the registry tarball | `git checkout v0.7.40-dsh.4`, toggle the bundle off/on, keep `updates: false` for dev |
+| A `link:` checkout was replaced by the published package | the updater (or a manual `dsh plugin add`) installed the registry tarball | `git checkout v0.7.40-dsh.5`, toggle the bundle off/on, keep `updates: false` for dev |
 | Tools resolve wrong owner/repo | no `defaultOwner`/`defaultRepo` and no git origin in the session cwd | configure defaults or pass owner/repo |
 | Plugin silently absent after a DSH upgrade | peer range does not name the new prerelease line | extend the `peerDependencies` range for every `@deepseek-ai/dsh-*` peer |
 
@@ -580,3 +580,12 @@ accepted:
    (package.json, bundles list, cordis.patch.yml row, pnpm lockfiles, symlink);
    **DSH must be restarted** to load the new bundle name. The repo is
    `dsh-gitea` from `0.7.40-dsh.4` onward.
+
+## Session log — event panel locale fix (2026-10-23, later)
+
+1. The settings page printed raw `eventsTitle`/`eventsEmptyHint` keys because
+   the component referenced keys missing from both dictionaries. Added en/zh
+   entries, taught the local `makeT` fallback to interpolate `{param}`
+   placeholders, and made the empty hint show the webhook URL.
+2. Released `0.7.40-dsh.5`; the client bundle is served per request, so a hard
+   refresh picks it up without restarting DSH.
