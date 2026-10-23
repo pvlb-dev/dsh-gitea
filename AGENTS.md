@@ -5,6 +5,66 @@ This file is for an AI agent (or a human in a hurry) picking up
 together, how it is loaded by the running DeepSeek Harness, what was broken, and
 which checks prove a change works. Read it before editing `lib/`.
 
+## Orientation — pvlb.dev
+
+This repo lives on the pvlb.dev forge:
+<https://git.pvlb.dev/dsh-plugins/dsh-gitea> and is the **deployment fork** of
+the upstream plugin (branch `master`; upstream is watch-only). Before starting,
+read the bootcamp page:
+<https://git.pvlb.dev/pvlb-infra/vps-setup/wiki/DSH-Bootcamp> — repos and wikis
+are private, so read it through an SSH clone, not `web_fetch`.
+
+- Commit as `dsh <dsh@pvlb.dev>` (global, GPG-signed); push when done.
+- Every issue is labeled **at creation** with `type/*`, `area/*` and
+  `priority/*`; `needs-operator` only when the operator must act. House set:
+  `type/task`, `type/bug`; `area/host|backup|forgejo|dsh|security`;
+  `priority/now|next|later`.
+- This repo owns the `gitea_*` toolset: bugs found by any project agent are
+  filed here, one defect per issue, and the table below is the index.
+- Environment: DSH `0.2.0-rc.2`, profile `web`, Forgejo 17.0.0; the box has
+  1.9 GiB RAM and `workspace-write` forbids `sudo` — ask the operator.
+
+## Issues and labels
+
+Labels are per repository. Every issue gets three axes when it is opened:
+
+| Axis | Values |
+|---|---|
+| type | `type/task`, `type/bug` |
+| area | `area/forgejo` for tool/API/CI work; `area/dsh` for the Harness plugin surface; others only if they fit better |
+| priority | `priority/now`, `priority/next`, `priority/later` |
+
+- `needs-operator` only for operator actions/decisions.
+- `gitea_issue_create` cannot set labels yet (#6). Create, then
+  `gitea_labels {action: "set"}` with **numeric ids**. `gitea_labels list` shows
+  the ids since `4d77e9f`; `set` still ignores names until #6. On an older
+  plugin build, read ids from
+  `GET /api/v1/repos/<owner>/<repo>/labels?limit=100` with `GITEA_TOKEN`.
+- Never run `gitea_label_bootstrap`: it hard-codes the upstream taxonomy (#8)
+  and would add ~30 foreign labels. Create house labels with
+  `gitea_labels {action: "create"}`.
+- Triage existing issues by reading them; propose priority changes, do not
+  silently rewrite someone else's labels.
+
+## Known tool bugs
+
+One defect = one issue. Add a row when a bug is filed, annotate it with the
+fix commit/release when it lands, and close the issue after a live check.
+Consumers mirror this table and link here.
+
+| Symptom | Root cause | Workaround | Issue | Status |
+|---|---|---|---|---|
+| `gitea_issue_list` maxes out at 20 rows | formatter `data.slice(0, 20)` | `limit <= 20`, page through | #2 | fixed in `4d77e9f` |
+| empty/unknown results print a bare `OK` | `formatters.js` fallbacks | verify via REST or a second query | #5 | fixed in `4d77e9f` |
+| `gitea_labels list` hides numeric ids | generic array formatter | REST `/labels` | #7 | fixed in `4d77e9f` |
+| `gitea_repo_contents` returns the path | `formatters.js` `data.path` branch | clone, or REST `/contents/<path>` | #3 | open |
+| `gitea_wiki get` returns metadata only | API is metadata-only; no wiki formatter | clone `<repo>.wiki.git` | #4 | open |
+| `gitea_issue_create` drops labels/assignee/milestone | `issues.js` create handler + tool def | create, then `gitea_labels set` | #6 | open |
+| `gitea_label_bootstrap` uses the upstream taxonomy | `label-bootstrap.js` | create house labels by hand | #8 | open |
+
+Fixing a tool bug = one issue, one PR, a formatter test, and a row update in
+this table — same sitting.
+
 ## What this repository is
 
 - A DSH **profile bundle + plugin** that connects the Harness to a self-hosted
@@ -121,7 +181,7 @@ which checks prove a change works. Read it before editing `lib/`.
 4. **Do not reorder or rename the bundle patch row id** (`dsh-gitea`). Both the
    settings namespace and the `plugins.row.config` key depend on it.
 5. **Commit in Conventional Commits style**, identity `dsh <dsh@pvlb.dev>`, and
-   push only to `origin/main` (no force push).
+   push only to `origin/master` (no force push).
 6. **Keep the npm auto-updater off in this profile** (`updates: false`). The
    one-click updater runs `dsh plugin add @goodandready/dsh-gitea@<npm latest>`,
    which replaces this `link:` checkout with the upstream tarball and silently
@@ -420,3 +480,21 @@ accepted:
    documentation with upstream attribution.
 3. Added regression tests for the off-switch (text wiring + behavioral 403 from a
    fake web server). `npm test`, `npm run test:leaks`, and `node --check` pass.
+
+## Session log — tool trust patch (2026-10-23)
+
+1. Renamed the repository's default branch from `main` to `master` per operator
+   direction: `master` pushed, Forgejo `default_branch` switched, the old `main`
+   deleted, and this file's push rule updated.
+2. Fixed #2/#5/#7 in one formatter patch (PR #11, rebased to `master` as
+   `4d77e9f`): no silent 20-row truncation, no bare `OK`, and `gitea_labels list`
+   shows the numeric ids/colours/descriptions that `action: "set"` consumes.
+   Added `test/handlers-formatters.test.mjs`; `npm test` (25), `npm run
+   test:leaks`, and `node --check` pass.
+3. Live-checked through the running plugin (HMR): `vps-setup` listed 28/28
+   issues, labels showed ids, an empty PR list answered `No pull requests.`, and
+   an idempotent `gitea_labels set` on #8 used ids copied from the list. Closed
+   #2/#5/#7 with the commit sha.
+4. Adopted the pvlb.dev bootcamp orientation, house label axes and the
+   known-tool-bug index. Consumers keep their own gotcha tables; this index is
+   canonical.
