@@ -576,6 +576,7 @@ accepted:
    package in the updater and release assistant, so the published package has no
    `dependencies`. The updater's temporary `.npmrc` points the unscoped package
    at our registry and the `@deepseek-ai` peer scope at npmjs.
-3. The deployment profile must switch its dependency/row name to `dsh-gitea`
-   and DSH must be restarted for the new bundle name; the repo is `dsh-gitea`
-   from `0.7.40-dsh.4` onward.
+3. The deployment profile is switched to the `dsh-gitea` dependency/row name
+   (package.json, bundles list, cordis.patch.yml row, pnpm lockfiles, symlink);
+   **DSH must be restarted** to load the new bundle name. The repo is
+   `dsh-gitea` from `0.7.40-dsh.4` onward.
