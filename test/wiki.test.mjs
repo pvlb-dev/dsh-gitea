@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import { GiteaClient } from '../lib/gitea-client.js'
+import { handleRepoTool } from '../lib/handlers/repos.js'
 import { formatToolResult } from '../lib/handlers/formatters.js'
 
 function mockResponse(status, body) {
@@ -64,4 +65,124 @@ test('listWikiPages returns pages unchanged for a non-empty wiki (#9 acceptance)
   assert.equal(res.ok, true)
   assert.deepEqual(res.data, pages)
   assert.match(text('gitea_wiki', res), /Home/)
+})
+
+// #10 — create/update/delete were missing although Forgejo exposes the API.
+test('createWikiPage POSTs base64 content to /wiki/new (#10)', async () => {
+  const seen = []
+  const client = makeClient((url, init) => {
+    seen.push({ url, init })
+    return mockResponse(201, { title: 'Home', html_url: 'https://git.example/acme/docs/wiki/Home' })
+  })
+  const res = await client.createWikiPage('acme', 'docs', { title: 'Home', content: '# Héllo\n', message: 'create home' })
+  assert.equal(res.ok, true)
+  assert.equal(seen.length, 1)
+  assert.equal(seen[0].init.method, 'POST')
+  assert.match(seen[0].url, /\/api\/v1\/repos\/acme\/docs\/wiki\/new$/)
+  const body = JSON.parse(seen[0].init.body)
+  assert.equal(body.title, 'Home')
+  assert.equal(body.content_base64, Buffer.from('# Héllo\n', 'utf8').toString('base64'))
+  assert.equal(body.message, 'create home')
+})
+
+test('updateWikiPage PATCHes the page segment and sends full content (#10)', async () => {
+  const seen = []
+  const client = makeClient((url, init) => {
+    seen.push({ url, init })
+    return mockResponse(200, { title: 'DSH Bootcamp', html_url: 'https://git.example/acme/docs/wiki/DSH-Bootcamp' })
+  })
+  const res = await client.updateWikiPage('acme', 'docs', 'DSH Bootcamp', { content: 'new body', message: 'edit' })
+  assert.equal(res.ok, true)
+  assert.equal(seen[0].init.method, 'PATCH')
+  assert.match(seen[0].url, /\/wiki\/page\/DSH%20Bootcamp$/)
+  const body = JSON.parse(seen[0].init.body)
+  assert.equal(body.content_base64, Buffer.from('new body', 'utf8').toString('base64'))
+  assert.equal(body.title, undefined)
+})
+
+test('deleteWikiPage DELETEs the page segment (#10)', async () => {
+  const seen = []
+  const client = makeClient((url, init) => {
+    seen.push({ url, init })
+    return mockResponse(204)
+  })
+  const res = await client.deleteWikiPage('acme', 'docs', 'Home')
+  assert.equal(res.ok, true)
+  assert.equal(seen[0].init.method, 'DELETE')
+  assert.match(seen[0].url, /\/wiki\/page\/Home$/)
+  assert.equal(seen[0].init.body, undefined)
+})
+
+test('wiki writes still fail on 401/403 (#10 acceptance)', async () => {
+  for (const status of [401, 403]) {
+    const client = makeClient(() => mockResponse(status, { message: 'denied' }))
+    const created = await client.createWikiPage('acme', 'docs', { title: 'Home', content: 'x' })
+    assert.equal(created.ok, false)
+    assert.equal(created.status, status)
+    const updated = await client.updateWikiPage('acme', 'docs', 'Home', { content: 'x' })
+    assert.equal(updated.ok, false)
+    const deleted = await client.deleteWikiPage('acme', 'docs', 'Home')
+    assert.equal(deleted.ok, false)
+  }
+})
+
+test('wiki list shows the canonical pageName slug (#10)', () => {
+  const out = text('gitea_wiki', {
+    ok: true,
+    data: [
+      { title: 'Probe-Page', sub_url: 'Probe-Page.-' },
+      { title: 'Home', sub_url: 'Home' },
+    ],
+  })
+  assert.match(out, /^Probe-Page \(pageName: Probe-Page\.-\)$/m)
+  assert.match(out, /^Home \(pageName: Home\)$/m)
+})
+
+function fakeClient(overrides = {}) {
+  return {
+    async createWikiPage() { return { ok: true, data: { title: 'Home', html_url: 'https://git.example/acme/docs/wiki/Home' } } },
+    async updateWikiPage() { return { ok: true, data: { title: 'Home', html_url: 'https://git.example/acme/docs/wiki/Home' } } },
+    async deleteWikiPage() { return { ok: true } },
+    ...overrides,
+  }
+}
+
+const wikiCtx = (client) => ({ client, owner: 'acme', repo: 'docs' })
+const callWiki = (args, client = fakeClient()) => handleRepoTool('gitea_wiki', args, {}, wikiCtx(client))
+
+test('wiki create requires a title and echoes the created page (#10)', async () => {
+  const missing = await callWiki({ action: 'create', content: 'x' })
+  assert.equal(missing.ok, false)
+  assert.match(missing.error, /title/)
+  const created = await callWiki({ action: 'create', title: 'Home', content: '# Hi' })
+  assert.equal(created.ok, true)
+  assert.equal(created.data.action, 'wiki_created')
+  assert.match(text('gitea_wiki', created), /^Wiki page created: Home/)
+})
+
+test('wiki update requires content and echoes the update (#10)', async () => {
+  const missing = await callWiki({ action: 'update', pageName: 'Home' })
+  assert.equal(missing.ok, false)
+  assert.match(missing.error, /content/)
+  const updated = await callWiki({ action: 'update', pageName: 'Home', content: 'new body' })
+  assert.equal(updated.ok, true)
+  assert.equal(updated.data.action, 'wiki_updated')
+  assert.match(text('gitea_wiki', updated), /^Wiki page updated: Home/)
+})
+
+test('wiki delete requires confirm: true (#10)', async () => {
+  const denied = await callWiki({ action: 'delete', pageName: 'Home' })
+  assert.equal(denied.ok, false)
+  assert.match(denied.error, /confirm/)
+  const deleted = await callWiki({ action: 'delete', pageName: 'Home', confirm: true })
+  assert.equal(deleted.ok, true)
+  assert.equal(deleted.data.deleted, true)
+  assert.equal(text('gitea_wiki', deleted), 'Wiki page deleted: Home')
+})
+
+test('wiki writes surface API failures instead of succeeding silently (#10)', async () => {
+  const failing = fakeClient({ async createWikiPage() { return { ok: false, status: 403, error: 'denied' } } })
+  const res = await callWiki({ action: 'create', title: 'Home', content: 'x' }, failing)
+  assert.equal(res.ok, false)
+  assert.equal(res.error, 'denied')
 })
