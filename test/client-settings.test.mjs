@@ -36,6 +36,16 @@ test('client registers the DSH 0.2.x settings and row configuration seats', () =
   assert.match(client, new RegExp(`const ROW_ID = '${rowId[1]}'`))
 })
 
+test('event panel labels are present in both locale dictionaries', () => {
+  // Regression: the settings page rendered the raw `eventsTitle` /
+  // `eventsEmptyHint` keys because neither dictionary defined them.
+  assert.match(client, /eventsTitle: 'Recent Events'/)
+  assert.match(client, /eventsEmptyHint: 'No events yet\./)
+  assert.match(client, /eventsTitle: '最近事件'/)
+  assert.match(client, /eventsEmptyHint: '暂无事件/)
+  assert.match(client, /function makeT\(locale\)/)
+})
+
 test('configuration form does not depend on the browser configForms mirror', () => {
   // On non-loopback pages the mirror is memory-only and reports `unavailable`,
   // which used to hide the entire form behind one message.
