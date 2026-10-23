@@ -54,5 +54,7 @@ jobs:
             echo "@goodandready/dsh-gitea@$version is already in the Forgejo registry; skipping."
             exit 0
           fi
-          npm pkg set private=false
+          # npm pkg set without --json writes the string "false", which npm
+          # treats as truthy and refuses as EPRIVATE; delete the field instead.
+          npm pkg delete private
           npm publish --registry "$registry"

@@ -14,6 +14,9 @@
   `https://git.pvlb.dev/api/packages/dsh-plugins/npm/` with the `NPM_TOKEN`
   secret (write:package). Duplicate versions are skipped; manual runs are dry
   runs.
+- **Release workflow fix**: `npm pkg delete private` before publishing.
+  `npm pkg set private=false` stores the string `"false"`, which npm treats as
+  truthy and aborts with `EPRIVATE`.
 - **Updater points at our registry**: `latestVersion()` reads the packument's
   `dist-tags.latest` (Forgejo 17 has no npmjs `/latest` alias), and installs use
   a throwaway scoped `.npmrc` so only `@goodandready` comes from the Forgejo
