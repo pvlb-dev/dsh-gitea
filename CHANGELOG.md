@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.7.40-dsh.4] - 2026-10-23
+
+### Package renamed to dsh-gitea
+- **Unscoped name**: the package is now `dsh-gitea` (was
+  `@goodandready/dsh-gitea`). The bundle row name, host `name` export, web
+  bundle id, session-header seat id and `plugins.row.config` key
+  (`dsh-gitea#dsh-gitea`) follow. The old scoped package stays in the registry
+  for pinned installs.
+- **No runtime dependencies**: `lib/semver.js` replaces the `semver` package in
+  the updater and release assistant, so the published package needs only the DSH
+  peers. The updater's temporary `.npmrc` points the package at the Forgejo
+  registry and the `@deepseek-ai` peer scope at npmjs.
+- **Publish**: the tag workflow publishes the unscoped name; `NPM_TOKEN` is
+  unchanged.
+
 ## [0.7.40-dsh.3] - 2026-10-23
 
 ### Own CI, publishing and updater; translations dropped

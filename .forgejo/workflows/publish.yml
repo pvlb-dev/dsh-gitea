@@ -48,10 +48,10 @@ jobs:
           fi
           registry="https://git.pvlb.dev/api/packages/dsh-plugins/npm/"
           version="$(node -p "require('./package.json').version")"
-          npm config set "@goodandready:registry" "$registry"
+          npm config set registry "$registry"
           npm config set "//git.pvlb.dev/api/packages/dsh-plugins/npm/:_authToken" "$NODE_AUTH_TOKEN"
-          if npm view "@goodandready/dsh-gitea@$version" version >/dev/null 2>&1; then
-            echo "@goodandready/dsh-gitea@$version is already in the Forgejo registry; skipping."
+          if npm view "dsh-gitea@$version" version >/dev/null 2>&1; then
+            echo "dsh-gitea@$version is already in the Forgejo registry; skipping."
             exit 0
           fi
           # npm pkg set without --json writes the string "false", which npm

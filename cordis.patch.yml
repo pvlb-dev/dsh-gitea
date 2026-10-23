@@ -1,4 +1,4 @@
 - insert:
     - id: dsh-gitea
-      name: '@goodandready/dsh-gitea'
+      name: 'dsh-gitea'
       config: {}

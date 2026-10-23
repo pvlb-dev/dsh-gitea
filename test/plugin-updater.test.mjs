@@ -15,7 +15,7 @@ import {
 } from '../lib/plugin-updater.js'
 
 const REGISTRY = 'https://git.pvlb.dev/api/packages/dsh-plugins/npm/'
-const PACKAGE = '@goodandready/dsh-gitea'
+const PACKAGE = 'dsh-gitea'
 const MANIFEST = new URL('../package.json', import.meta.url)
 
 async function withMockFetch(handler, fn) {
@@ -98,11 +98,12 @@ test('registryAuthKey is the npm URI-fragment form', () => {
   )
 })
 
-test('createRegistryUserconfig scopes only our package to Forgejo', async () => {
+test('createRegistryUserconfig points the package at Forgejo but keeps DSH peers on npmjs', async () => {
   const config = await createRegistryUserconfig(REGISTRY, PACKAGE, 'tok', '/nonexistent/.npmrc')
   try {
     const content = await readFile(config.file, 'utf8')
-    assert.match(content, /^@goodandready:registry=https:\/\/git\.pvlb\.dev\/api\/packages\/dsh-plugins\/npm\/$/m)
+    assert.match(content, /^registry=https:\/\/git\.pvlb\.dev\/api\/packages\/dsh-plugins\/npm\/$/m)
+    assert.match(content, /^@deepseek-ai:registry=https:\/\/registry\.npmjs\.org\/$/m)
     assert.match(content, /^\/\/git\.pvlb\.dev\/api\/packages\/dsh-plugins\/npm\/:_authToken=tok$/m)
   } finally {
     await config.cleanup()
@@ -128,7 +129,8 @@ test('createRegistryUserconfig carries the user config forward', async () => {
   try {
     const content = await readFile(config.file, 'utf8')
     assert.match(content, /^minimum-release-age=1440$/m)
-    assert.match(content, /^@goodandready:registry=/m)
+    assert.match(content, /^registry=/m)
+    assert.match(content, /^@deepseek-ai:registry=/m)
   } finally {
     await config.cleanup()
     await rm(dir, { recursive: true, force: true })

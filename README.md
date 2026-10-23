@@ -1,4 +1,4 @@
-# 🏴 @goodandready/dsh-gitea — private deployment fork
+# 🏴 dsh-gitea — private deployment fork
 
 <div align="center">
 
@@ -26,13 +26,13 @@ keep our patch set small, and tag what is live. The full operational contract �
 DSH slot matrix, settings contract, install loop, failure table — lives in
 [AGENTS.md](AGENTS.md).
 
-- Fork version: `0.7.40-dsh.3` (see [Versioning](#versioning))
+- Fork version: `0.7.40-dsh.4` (see [Versioning](#versioning))
 - Base: upstream `abfd952`, checked against DSH `0.2.0-rc.2` and Forgejo
   `17.0.0+gitea-1.22.0`
 
 ## What it does
 
-`@goodandready/dsh-gitea` connects the Harness to a self-hosted Gitea or Forgejo
+`dsh-gitea` connects the Harness to a self-hosted Gitea or Forgejo
 instance and gives the agent structured, safety-railed access to it:
 
 - **20+ agent tools** — issues (create/update/comment/close, timeline,
@@ -190,7 +190,7 @@ shows "Token not configured" and tools fail to authenticate.
 - The plugin updater is **double-gated**: loopback-only requests with the
   `x-dsh-plugin-update` header *and* the `updates` Config switch. It resolves
   versions from this fork's Forgejo registry and installs through a temporary
-  scoped `.npmrc`; it never contacts upstream npmjs.
+  `.npmrc`; it never contacts upstream npmjs.
 - `npm run test:leaks` fails the build on private home paths, npm scopes, token
   literals, or Cyrillic in shipped JS.
 
@@ -202,7 +202,7 @@ Two Forgejo Actions workflows live in `.forgejo/workflows/`:
   (tests, leak scan, syntax) plus `npm pack --dry-run`.
 - `publish.yml` runs on `v*` tags (and manual dispatch): it re-runs the checks,
   requires the tag to equal `v<package.json version>`, then publishes
-  `@goodandready/dsh-gitea` to
+  `dsh-gitea` to
   `https://git.pvlb.dev/api/packages/dsh-plugins/npm/`. The `NPM_TOKEN`
   repository secret must hold a Forgejo token with the `write:package` scope.
   A manual run is a dry run; an already-published version is skipped.
@@ -213,24 +213,24 @@ rootless Docker socket, so only maintainer-controlled events execute workflows.
 Install a published build into a profile:
 
 ```bash
-npm config set @goodandready:registry https://git.pvlb.dev/api/packages/dsh-plugins/npm/
-npm config set -- '//git.pvlb.dev/api/packages/dsh-plugins/npm/:_authToken' '<forgejo-token>'
-dsh plugin --profile web add @goodandready/dsh-gitea@0.7.40-dsh.3
+# the package tarball; its dependencies resolve from npmjs normally
+dsh plugin --profile web add \
+  https://git.pvlb.dev/api/packages/dsh-plugins/npm/dsh-gitea/-/0.7.40-dsh.4/dsh-gitea-0.7.40-dsh.4.tgz
 ```
 
 The in-UI updater reads the registry packument's `dist-tags.latest` (Forgejo 17
-does not serve npmjs's `/latest` alias) and installs the exact version through a
-throwaway scoped `.npmrc`, so runtime dependencies still come from npmjs. The
-`updates` Config switch gates it; this profile keeps it `false` for the `link:`
-development checkout. Turning it on lets the next update replace that checkout
-with the published package.
+does not serve npmjs's `/latest` alias) and installs `dsh-gitea@<version>` through
+a throwaway `.npmrc`; the package is dependency-free, so only the `@deepseek-ai`
+peers come from npmjs. The `updates` Config switch gates it; this profile keeps it
+`false` for the `link:` development checkout. Turning it on lets the next update
+replace that checkout with the published package.
 
 Release ritual:
 
 ```bash
 # bump package.json + CHANGELOG, commit, push
-git tag -a v0.7.40-dsh.3 -m "…"
-git push origin master v0.7.40-dsh.3   # the tag triggers publish.yml
+git tag -a v0.7.40-dsh.4 -m "…"
+git push origin master v0.7.40-dsh.4   # the tag triggers publish.yml
 ```
 
 ## Upstream policy and sync
@@ -254,9 +254,9 @@ self-contained and is the best PR candidate.
 
 ## Versioning
 
-- Format: `<upstream base>-dsh.<n>` — currently `0.7.40-dsh.3`.
+- Format: `<upstream base>-dsh.<n>` — currently `0.7.40-dsh.4`.
 - Every live state is tagged `v<version>`. Rollback is
-  `git checkout v0.7.40-dsh.3`, then toggle the bundle off/on and hard-refresh.
+  `git checkout v0.7.40-dsh.4`, then toggle the bundle off/on and hard-refresh.
 - `CHANGELOG.md` gets a fork entry per release; upstream entries stay untouched.
 
 ## Development and checks
@@ -283,7 +283,7 @@ automation in this environment; UI changes need a human check in the Web UI.
 | `lib/client.js` | Generated web bundle: settings page, Git chip/drawer, action cards, locales |
 | `lib/routes.js`, `lib/routes-hub.js` | HTTP endpoints (`/config`, `/events`, `/git-*`, `/sse`, `/hub`, webhook) |
 | `lib/http-guard.js` | Route auth/CSRF fence (DSH Connection first, loopback fallback) |
-| `lib/plugin-updater.js` | One-click updater: Forgejo registry packument, scoped install, `updates` switch |
+| `lib/plugin-updater.js` | One-click updater: Forgejo registry packument, unscoped install, `updates` switch |
 | `lib/gitea-client.js` | Gitea REST client (cache, ETags, retries, timeouts) |
 | `lib/handlers*`, `lib/tool-defs*` | Tool implementations and schemas |
 | `.forgejo/workflows/` | `ci.yml` (push checks) and `publish.yml` (tag → Forgejo npm registry) |

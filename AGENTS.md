@@ -1,7 +1,7 @@
 # AGENTS.md — working notes for future agents
 
 This file is for an AI agent (or a human in a hurry) picking up
-`@goodandready/dsh-gitea` in this checkout. It records how the plugin is put
+`dsh-gitea` in this checkout. It records how the plugin is put
 together, how it is loaded by the running DeepSeek Harness, what was broken, and
 which checks prove a change works. Read it before editing `lib/`.
 
@@ -85,9 +85,11 @@ this table — same sitting.
   here, but they only reach upstream if the author ports them into the private
   source. Treat the public tree as a vendored artifact, not as a contribution
   target for generated files.
-- Package identity: `@goodandready/dsh-gitea` — the name is kept unchanged so the
-  bundle row id, Settings namespace, and `plugins.row.config` key stay stable.
-  Fork version: `0.7.40-dsh.3` (see "Versioning and tags"). Runtime peer line:
+- Package identity: `dsh-gitea` (renamed from the upstream
+  `@goodandready/dsh-gitea`; the old scoped package stays in the registry for
+  pinned installs). The bundle row id and Settings namespace stay `dsh-gitea`, so
+  the `plugins.row.config` key is now `dsh-gitea#dsh-gitea`.
+  Fork version: `0.7.40-dsh.4` (see "Versioning and tags"). Runtime peer line:
   DSH `0.1.7-rc.2` / `0.2.0-rc.x` (`peerDependencies`).
 - Remotes:
   - `origin` = `ssh://git@git.pvlb.dev/dsh-plugins/dsh-gitea.git` — our private
@@ -158,10 +160,10 @@ this table — same sitting.
 
 ### Versioning and tags
 
-- Version format `<upstream base>-dsh.<n>` (currently `0.7.40-dsh.3`): semver
+- Version format `<upstream base>-dsh.<n>` (currently `0.7.40-dsh.4`): semver
   valid, visibly a fork, and still comparable to upstream releases.
 - Tag every state that is live on the server as `v<version>` (for example
-  `v0.7.40-dsh.3`). Rollback = `git checkout <tag>`, toggle the bundle off/on,
+  `v0.7.40-dsh.4`). Rollback = `git checkout <tag>`, toggle the bundle off/on,
   hard-refresh.
 - Add a fork entry to `CHANGELOG.md` per release; leave upstream entries intact.
 
@@ -177,16 +179,19 @@ this table — same sitting.
   `https://git.pvlb.dev/api/packages/dsh-plugins/npm/`. It skips a version that
   already exists. The repo secret `NPM_TOKEN` holds a Forgejo token with the
   `write:package` scope; a tag push is the only way a package is published.
-- The package keeps the upstream name `@goodandready/dsh-gitea` but is published
-  only to our private Forgejo registry — never to npmjs.
+- The package is `dsh-gitea` (the upstream `@goodandready/dsh-gitea` name is
+  retired here) and is published only to our private Forgejo registry — never to
+  npmjs.
 - Release ritual: bump `package.json` + `CHANGELOG.md`, commit, push `master`,
   then `git tag -a v<version> -m "…" && git push origin v<version>`.
-- Consumers point the scope at the registry:
+- Install a published build from its tarball (dependencies resolve from npmjs):
   ```bash
-  npm config set @goodandready:registry https://git.pvlb.dev/api/packages/dsh-plugins/npm/
-  npm config set -- '//git.pvlb.dev/api/packages/dsh-plugins/npm/:_authToken' '<forgejo-token>'
-  dsh plugin --profile web add @goodandready/dsh-gitea@<version>
+  dsh plugin --profile web add \
+    https://git.pvlb.dev/api/packages/dsh-plugins/npm/dsh-gitea/-/<version>/dsh-gitea-<version>.tgz
   ```
+  The in-UI updater instead runs `dsh plugin add dsh-gitea@<version>` with a
+  temporary `.npmrc` that points the package at our registry and the
+  `@deepseek-ai` peer scope at npmjs.
 
 ## Ground rules
 
@@ -209,8 +214,8 @@ this table — same sitting.
 6. **The updater installs our own package, not upstream's.** It reads
    `dist-tags.latest` from
    `https://git.pvlb.dev/api/packages/dsh-plugins/npm/` and runs
-   `dsh plugin add @goodandready/dsh-gitea@<version>` with a throwaway scoped
-   `.npmrc`. The `updates` Config flag gates both the UI and
+   `dsh plugin add dsh-gitea@<version>` with a throwaway `.npmrc`. The `updates`
+   Config flag gates both the UI and
    `/api/dsh-gitea/update` (`isEnabled` in `lib/index.js`); this profile keeps it
    `false` for the `link:` dev checkout. Enabling it lets the next update replace
    that checkout with the published package — deliberate, not an accident.
@@ -228,7 +233,7 @@ this table — same sitting.
 | `lib/routes-hub.js` | Interactive Hub action dispatcher used by `POST /dsh-gitea/hub` |
 | `lib/http-guard.js` | Host/Origin/CSRF fence + DSH Connection authentication for custom routes |
 | `lib/gitea-client.js` | Gitea REST client (cache, ETags, retry, timeouts) |
-| `lib/plugin-updater.js` | One-click updater: Forgejo registry packument, scoped install, loopback fence + `updates` switch |
+| `lib/plugin-updater.js` | One-click updater: Forgejo registry packument, unscoped install, loopback fence + `updates` switch |
 | `lib/handlers.js`, `lib/handlers/*` | Tool implementations; `lib/tool-defs.js`, `lib/tool-defs/*` hold schemas |
 | `lib/settings`-related | Settings live in `lib/index.js` (`Config`, `readServedConfig`, `servedScope`); UI in `lib/client.js` |
 | `assets/issue-templates/` | Issue form templates the plugin can install |
@@ -262,7 +267,7 @@ this table — same sitting.
 | Seat | Status in 0.2.0-rc.2 | Used here |
 |:--|:--|:--|
 | `settings.section` | exists, list, one settings page per entry | **primary** settings page, `id: dsh-gitea`, label `Gitea` |
-| `plugins.row.config` | exists, keyed by `<package>#<row id>` | **canonical config page** on Plugins → bundle → row → Configure; key `@goodandready/dsh-gitea#dsh-gitea` |
+| `plugins.row.config` | exists, keyed by `<package>#<row id>` | **canonical config page** on Plugins → bundle → row → Configure; key `dsh-gitea#dsh-gitea` |
 | `plugins.item` | exists but is the **official plugins** seat | kept only as a legacy compatibility card |
 | `settings.plugin.item` | **does not exist** | inert legacy fallback; registration waits forever, harmless |
 | `conversation.session.header.utilities` | exists, session list | Git status chip |
@@ -351,8 +356,8 @@ plugin_manager action=install_bundle target=/path/to/dsh-gitea enabled=true
 To pick up code changes in a `link:` install, toggle the bundle off and on:
 
 ```
-plugin_manager action=set_bundle target=@goodandready/dsh-gitea enabled=false
-plugin_manager action=set_bundle target=@goodandready/dsh-gitea enabled=true
+plugin_manager action=set_bundle target=dsh-gitea enabled=false
+plugin_manager action=set_bundle target=dsh-gitea enabled=true
 ```
 
 `application: "applied"` means the change is live. `application: "failed"` plus
@@ -365,10 +370,13 @@ sandbox may deny it): `dsh plugin --profile web add /path/to/checkout`.
 Registry install (published package) instead of a checkout:
 
 ```bash
-npm config set @goodandready:registry https://git.pvlb.dev/api/packages/dsh-plugins/npm/
-npm config set -- '//git.pvlb.dev/api/packages/dsh-plugins/npm/:_authToken' '<forgejo-token>'
-dsh plugin --profile web add @goodandready/dsh-gitea@<version>
+dsh plugin --profile web add \
+  https://git.pvlb.dev/api/packages/dsh-plugins/npm/dsh-gitea/-/<version>/dsh-gitea-<version>.tgz
 ```
+
+The tarball install resolves dependencies from npmjs normally. The in-UI updater
+uses `dsh plugin add dsh-gitea@<version>` with a temporary `.npmrc` that points
+the package at our registry and the `@deepseek-ai` peer scope at npmjs.
 
 A registry install needs no `dev:link`; the DSH peers come from the profile.
 
@@ -379,7 +387,7 @@ A registry install needs no `dev:link`; the DSH peers come from the profile.
 plugin_manager action=list_bundles
 
 # The Config schema reached the Loader (status "schema" is healthy)
-cordis_inspect_query host Config listConfigs {"name":"@goodandready/dsh-gitea"}
+cordis_inspect_query host Config listConfigs {"name":"dsh-gitea"}
 
 # Agent tools registered (gitea_* show up in the tool list)
 cordis_inspect_query host Tool listTools
@@ -431,12 +439,12 @@ regression gate for edits to `lib/client.js`.
 | No Gitea entry under Settings | wrong/known-dead slot (`settings.plugin.item`) or client bundle not loaded | register `settings.section`; check slot occupants; hard-refresh |
 | Settings page renders only "unavailable" | form gated on browser `configForms` (memory mode on non-loopback) | use the Host route + `writable` response (already implemented) |
 | Settings page shows `HTTP 403` over a LAN/Tailscale URL | Connection admitted the request but the guard fell through to the loopback-only fallback (fixed), or the Host-half module is stale | update `lib/http-guard.js`; reload Host code (HMR root or restart `dsh web`); hard-refresh the page |
-| Configure page missing on Plugins | row key mismatch | key must be `@goodandready/dsh-gitea#dsh-gitea` |
+| Configure page missing on Plugins | row key mismatch | key must be `dsh-gitea#dsh-gitea` |
 | Settings fields empty / not projected | Config field without `.volatile()` | mark the field volatile |
 | Save appears successful but is lost on restart | write bypassed the Settings service | persist via `servedScope.update`; check `writable` |
 | Settings page has no Plugin Auto-Updater panel | `updates: false` — the fork default in this profile | expected; enabling it lets the Forgejo registry package replace the `link:` checkout |
 | `/api/dsh-gitea/update` answers 403 `code: "disabled"` | Config `updates: false` | expected on this fork; never remove the gate |
-| A `link:` checkout was replaced by the published package | the updater (or a manual `dsh plugin add`) installed the registry tarball | `git checkout v0.7.40-dsh.3`, toggle the bundle off/on, keep `updates: false` for dev |
+| A `link:` checkout was replaced by the published package | the updater (or a manual `dsh plugin add`) installed the registry tarball | `git checkout v0.7.40-dsh.4`, toggle the bundle off/on, keep `updates: false` for dev |
 | Tools resolve wrong owner/repo | no `defaultOwner`/`defaultRepo` and no git origin in the session cwd | configure defaults or pass owner/repo |
 | Plugin silently absent after a DSH upgrade | peer range does not name the new prerelease line | extend the `peerDependencies` range for every `@deepseek-ai/dsh-*` peer |
 
@@ -454,7 +462,7 @@ regression gate for edits to `lib/client.js`.
   comment explaining why the literal is publishable.
 - The updater is double-gated: loopback-only request fence in
   `lib/plugin-updater.js` **and** the `updates` Config switch. It reads versions
-  from our Forgejo registry and installs through a temporary scoped `.npmrc`;
+  from our Forgejo registry and installs through a temporary `.npmrc`;
   without the switch it can replace a `link:` checkout with the published
   package.
 - Do not add network calls to the settings form path that are not same-origin.
@@ -555,3 +563,19 @@ accepted:
    published and was deleted via the API; the repo has `NPM_TOKEN`; live
    `latestVersion('dsh-resend-mcp')` returned `0.1.2`. Release `0.7.40-dsh.3`
    publishes on its tag.
+
+## Session log — package renamed to dsh-gitea (2026-10-23, later)
+
+1. Renamed the npm package from `@goodandready/dsh-gitea` to the unscoped
+   `dsh-gitea` (operator direction: it is ours now). Updated
+   `cordis.patch.yml`, the host `name` export, the client bundle id/`PKG`
+   constant, the session-header seat id, the updater target, the row config key
+   (`dsh-gitea#dsh-gitea`) and the UI copy. The old scoped package stays in the
+   registry for pinned installs.
+2. Removed the last runtime dependency: `lib/semver.js` replaces the `semver`
+   package in the updater and release assistant, so the published package has no
+   `dependencies`. The updater's temporary `.npmrc` points the unscoped package
+   at our registry and the `@deepseek-ai` peer scope at npmjs.
+3. The deployment profile is switched to the `dsh-gitea` dependency/row name;
+   restarting DSH loads the new bundle name. The repo is `dsh-gitea` from
+   `0.7.40-dsh.4` onward.

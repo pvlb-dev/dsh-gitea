@@ -17,6 +17,7 @@ const hostEntry = readFileSync(join(root, 'lib/index.js'), 'utf8')
 const patch = readFileSync(join(root, 'cordis.patch.yml'), 'utf8')
 
 test('client manifest and bundle exports are present', () => {
+  assert.equal(pkg.name, 'dsh-gitea')
   assert.equal(pkg.dsh?.client?.platform, 'web')
   assert.equal(pkg.exports['./client'], './lib/client.js')
   assert.match(pkg.exports['./cordis.patch.yml'], /cordis\.patch\.yml$/)
@@ -135,7 +136,7 @@ test('https URL rewriting only upgrades matching Gitea hosts', () => {
 })
 
 test('fork off-switch: config flag gates the in-UI updater everywhere', () => {
-  // The updater installs `@goodandready/dsh-gitea@<npm latest>`, which replaces a
+  // The updater installs the fork's own `dsh-gitea@<version>`, which replaces a
   // link:ed fork checkout. The switch must exist in the schema, be wired into
   // the updater, and be reflected in the form (field + hidden panel + no poll).
   assert.match(hostEntry, /updates: z\.boolean\(\)\.default\(true\)/)
@@ -151,8 +152,10 @@ test('updater is pointed at the pvlb.dev Forgejo registry', () => {
   // The fork publishes its own package; the updater must never install the
   // upstream npmjs tarball over this tree.
   assert.match(hostEntry, /const UPDATE_REGISTRY = 'https:\/\/git\.pvlb\.dev\/api\/packages\/dsh-plugins\/npm\/'/)
+  assert.match(hostEntry, /packageName: 'dsh-gitea'/)
   assert.match(hostEntry, /registry: UPDATE_REGISTRY/)
   assert.match(hostEntry, /resolveRegistryToken: \(\) => resolveToken\(live\(\)\.tokenEnv\)/)
+  assert.match(client, /const PKG = 'dsh-gitea'/)
   assert.match(client, /pvlb\.dev Forgejo npm registry/)
   assert.match(client, /pvlb\.dev npm registry/)
 })
