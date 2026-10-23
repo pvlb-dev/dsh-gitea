@@ -1,0 +1,33 @@
+name: CI
+
+# No pull_request trigger on purpose: the shared Forgejo runner gives job
+# containers the host's rootless Docker socket, so only maintainer-controlled
+# events (push to master, manual dispatch) may execute a workflow here.
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: docker
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.6"
+
+      - name: Tool versions
+        run: |
+          node --version
+          npm --version
+
+      - name: Tests, leak scan and syntax checks
+        run: npm run check
+
+      - name: Verify package contents
+        run: npm pack --dry-run

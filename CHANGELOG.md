@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.7.40-dsh.3] - 2026-10-23
+
+### Own CI, publishing and updater; translations dropped
+- **Translations removed**: `README.ru.md` and `README.zh.md` are gone (and removed
+  from `package.json#files` and the leak scan). `README.md` is the single README.
+- **Forgejo Actions CI**: `.forgejo/workflows/ci.yml` runs on every push to
+  `master`: `npm run check` (tests + leak scan + syntax) and `npm pack --dry-run`.
+  There is no `pull_request` trigger — the shared runner exposes the host's
+  rootless Docker socket, so only maintainer events execute workflows.
+- **Publish on tags**: `.forgejo/workflows/publish.yml` runs on `v*` tags, checks
+  the tag against `package.json`, and publishes to
+  `https://git.pvlb.dev/api/packages/dsh-plugins/npm/` with the `NPM_TOKEN`
+  secret (write:package). Duplicate versions are skipped; manual runs are dry
+  runs.
+- **Updater points at our registry**: `latestVersion()` reads the packument's
+  `dist-tags.latest` (Forgejo 17 has no npmjs `/latest` alias), and installs use
+  a throwaway scoped `.npmrc` so only `@goodandready` comes from the Forgejo
+  registry while runtime deps stay on npmjs. The `updates` switch still gates it;
+  this profile keeps it off for the `link:` dev checkout.
+- **Tests**: `test/plugin-updater.test.mjs` covers packument parsing, numeric
+  fork ordering, caching, auth/userconfig, and `getStatus`. `npm run check` is now
+  the single CI gate.
+
 ## [0.7.40-dsh.2] - 2026-10-23
 
 ### Tool trust patch: complete lists, no bare OK, label ids (#2, #5, #7)

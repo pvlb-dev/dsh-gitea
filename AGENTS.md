@@ -87,7 +87,7 @@ this table — same sitting.
   target for generated files.
 - Package identity: `@goodandready/dsh-gitea` — the name is kept unchanged so the
   bundle row id, Settings namespace, and `plugins.row.config` key stay stable.
-  Fork version: `0.7.40-dsh.2` (see "Versioning and tags"). Runtime peer line:
+  Fork version: `0.7.40-dsh.3` (see "Versioning and tags"). Runtime peer line:
   DSH `0.1.7-rc.2` / `0.2.0-rc.x` (`peerDependencies`).
 - Remotes:
   - `origin` = `ssh://git@git.pvlb.dev/dsh-plugins/dsh-gitea.git` — our private
@@ -136,8 +136,8 @@ this table — same sitting.
   generated `lib/client.js` can be dropped on the next `chore(publish)`.
 - Current base: upstream `abfd952` (`chore(publish): sanitized tree from
   e30e98ab`). Our commits on top: settings UI/install fixes, the HTTP guard fix,
-  and the fork-identity commit (updater off-switch, docs, versioning). Keep them
-  small and Conventional so rebases stay cheap.
+  the tool trust patch, the fork identity, and the CI/publishing + own-registry
+  updater. Keep them small and Conventional so rebases stay cheap.
 - Sync deliberately, when an upstream change actually matters — not on every
   publish:
   ```bash
@@ -152,17 +152,41 @@ this table — same sitting.
   and a fork-specific README. If we ever upstream something, isolate it into a
   minimal branch or a patch file (`lib/http-guard.js` is self-contained) and keep
   internal-context files out of it.
-- Never publish this package to npm: the name belongs to upstream, and this
-  deployment installs by local path (`link:`).
+- Publish only to our Forgejo npm registry (via CI); never to the public npm
+  registry. This deployment's dev checkout installs by local path (`link:`),
+  and the published package is what the updater consumes.
 
 ### Versioning and tags
 
-- Version format `<upstream base>-dsh.<n>` (currently `0.7.40-dsh.2`): semver
+- Version format `<upstream base>-dsh.<n>` (currently `0.7.40-dsh.3`): semver
   valid, visibly a fork, and still comparable to upstream releases.
 - Tag every state that is live on the server as `v<version>` (for example
-  `v0.7.40-dsh.2`). Rollback = `git checkout <tag>`, toggle the bundle off/on,
+  `v0.7.40-dsh.3`). Rollback = `git checkout <tag>`, toggle the bundle off/on,
   hard-refresh.
 - Add a fork entry to `CHANGELOG.md` per release; leave upstream entries intact.
+
+## CI and releases
+
+- `.forgejo/workflows/ci.yml` runs on pushes to `master` (and manual dispatch):
+  `npm run check` plus `npm pack --dry-run`. There is no `pull_request` trigger:
+  the shared runner gives job containers the host's rootless Docker socket, so
+  only maintainer-controlled events may execute a workflow.
+- `.forgejo/workflows/publish.yml` runs on `v*` tags (manual dispatch is a dry
+  run), re-runs the checks, requires the tag to equal
+  `v<package.json version>`, and publishes to
+  `https://git.pvlb.dev/api/packages/dsh-plugins/npm/`. It skips a version that
+  already exists. The repo secret `NPM_TOKEN` holds a Forgejo token with the
+  `write:package` scope; a tag push is the only way a package is published.
+- The package keeps the upstream name `@goodandready/dsh-gitea` but is published
+  only to our private Forgejo registry — never to npmjs.
+- Release ritual: bump `package.json` + `CHANGELOG.md`, commit, push `master`,
+  then `git tag -a v<version> -m "…" && git push origin v<version>`.
+- Consumers point the scope at the registry:
+  ```bash
+  npm config set @goodandready:registry https://git.pvlb.dev/api/packages/dsh-plugins/npm/
+  npm config set -- '//git.pvlb.dev/api/packages/dsh-plugins/npm/:_authToken' '<forgejo-token>'
+  dsh plugin --profile web add @goodandready/dsh-gitea@<version>
+  ```
 
 ## Ground rules
 
@@ -182,15 +206,17 @@ this table — same sitting.
    settings namespace and the `plugins.row.config` key depend on it.
 5. **Commit in Conventional Commits style**, identity `dsh <dsh@pvlb.dev>`, and
    push only to `origin/master` (no force push).
-6. **Keep the npm auto-updater off in this profile** (`updates: false`). The
-   one-click updater runs `dsh plugin add @goodandready/dsh-gitea@<npm latest>`,
-   which replaces this `link:` checkout with the upstream tarball and silently
-   reverts every fork patch. The `updates` Config flag gates both the UI and the
-   `/api/dsh-gitea/update` route (`isEnabled` in `lib/index.js`); do not remove
-   either gate, and do not re-enable it without first verifying what npm would
-   install over this tree.
-7. **Fork identity:** keep the package name and bundle row id, never publish to
-   npm, and do not add GitHub as a push remote.
+6. **The updater installs our own package, not upstream's.** It reads
+   `dist-tags.latest` from
+   `https://git.pvlb.dev/api/packages/dsh-plugins/npm/` and runs
+   `dsh plugin add @goodandready/dsh-gitea@<version>` with a throwaway scoped
+   `.npmrc`. The `updates` Config flag gates both the UI and
+   `/api/dsh-gitea/update` (`isEnabled` in `lib/index.js`); this profile keeps it
+   `false` for the `link:` dev checkout. Enabling it lets the next update replace
+   that checkout with the published package — deliberate, not an accident.
+7. **Fork identity:** keep the package name and bundle row id, publish only to
+   our Forgejo npm registry through CI (never to the public npm registry), and
+   do not add GitHub as a push remote.
 
 ## Repository map
 
@@ -202,11 +228,12 @@ this table — same sitting.
 | `lib/routes-hub.js` | Interactive Hub action dispatcher used by `POST /dsh-gitea/hub` |
 | `lib/http-guard.js` | Host/Origin/CSRF fence + DSH Connection authentication for custom routes |
 | `lib/gitea-client.js` | Gitea REST client (cache, ETags, retry, timeouts) |
-| `lib/plugin-updater.js` | One-click npm updater; loopback-only, gated by `options.isEnabled` (fork off-switch) |
+| `lib/plugin-updater.js` | One-click updater: Forgejo registry packument, scoped install, loopback fence + `updates` switch |
 | `lib/handlers.js`, `lib/handlers/*` | Tool implementations; `lib/tool-defs.js`, `lib/tool-defs/*` hold schemas |
 | `lib/settings`-related | Settings live in `lib/index.js` (`Config`, `readServedConfig`, `servedScope`); UI in `lib/client.js` |
 | `assets/issue-templates/` | Issue form templates the plugin can install |
 | `cordis.patch.yml` | Bundle patch: inserts the `dsh-gitea` row with empty config |
+| `.forgejo/workflows/` | `ci.yml` (push checks) and `publish.yml` (tag → Forgejo npm registry) |
 | `scripts/dev-link-dsh.mjs` | Links DSH peer packages into this checkout for `link:` installs |
 | `scripts/leak-scan.mjs` | Fails on private paths/scopes/tokens/Cyrillic in the publishable tree |
 | `test/*.test.mjs` | Fork regression checks (`npm test`); upstream ships no tests, so this suite is ours |
@@ -270,7 +297,7 @@ this table — same sitting.
   settings surface become live.
 - `updates` (default `true`) is the fork **updater off-switch**. It is a volatile
   Config field, so it renders in the form and persists through the same POST.
-  When `false`, the form hides the auto-updater panel and skips the npm registry
+  When `false`, the form hides the auto-updater panel and skips the registry
   check, and `lib/index.js` passes `isEnabled: () => live().updates !== false` to
   the updater, which answers 403 `code: "disabled"` on every request. This
   deployment keeps it `false` (see Ground rule 6).
@@ -335,6 +362,16 @@ Hard-refresh the browser if the client bundle was not hot-reloaded.
 CLI alternative (needs a profile-capable shell; outside this workspace the file
 sandbox may deny it): `dsh plugin --profile web add /path/to/checkout`.
 
+Registry install (published package) instead of a checkout:
+
+```bash
+npm config set @goodandready:registry https://git.pvlb.dev/api/packages/dsh-plugins/npm/
+npm config set -- '//git.pvlb.dev/api/packages/dsh-plugins/npm/:_authToken' '<forgejo-token>'
+dsh plugin --profile web add @goodandready/dsh-gitea@<version>
+```
+
+A registry install needs no `dev:link`; the DSH peers come from the profile.
+
 ### 3. Verify without a browser
 
 ```
@@ -359,6 +396,7 @@ A healthy client registration appears as an occupant with
 ### 4. Local checks
 
 ```bash
+npm run check       # tests + leak scan + node --check (the CI gate)
 npm test            # mirror-safe regression suite
 npm run test:leaks  # publishable-tree hygiene
 node --check lib/client.js
@@ -396,9 +434,9 @@ regression gate for edits to `lib/client.js`.
 | Configure page missing on Plugins | row key mismatch | key must be `@goodandready/dsh-gitea#dsh-gitea` |
 | Settings fields empty / not projected | Config field without `.volatile()` | mark the field volatile |
 | Save appears successful but is lost on restart | write bypassed the Settings service | persist via `servedScope.update`; check `writable` |
-| Settings page has no Plugin Auto-Updater panel | `updates: false` — the fork default in this profile | expected; only enable it if you deliberately want npm to replace the `link:` checkout |
+| Settings page has no Plugin Auto-Updater panel | `updates: false` — the fork default in this profile | expected; enabling it lets the Forgejo registry package replace the `link:` checkout |
 | `/api/dsh-gitea/update` answers 403 `code: "disabled"` | Config `updates: false` | expected on this fork; never remove the gate |
-| Fork fixes disappeared after a plugin/DSH update | the one-click updater installed the upstream npm tarball over the checkout | `git checkout v0.7.40-dsh.2`, toggle the bundle off/on, keep `updates: false` |
+| A `link:` checkout was replaced by the published package | the updater (or a manual `dsh plugin add`) installed the registry tarball | `git checkout v0.7.40-dsh.3`, toggle the bundle off/on, keep `updates: false` for dev |
 | Tools resolve wrong owner/repo | no `defaultOwner`/`defaultRepo` and no git origin in the session cwd | configure defaults or pass owner/repo |
 | Plugin silently absent after a DSH upgrade | peer range does not name the new prerelease line | extend the `peerDependencies` range for every `@deepseek-ai/dsh-*` peer |
 
@@ -414,9 +452,11 @@ regression gate for edits to `lib/client.js`.
 - The leak scanner must stay green: no private home paths, private scopes,
   token literals, or Cyrillic in shipped JS. Add new exceptions only with a
   comment explaining why the literal is publishable.
-- The npm updater is double-gated: loopback-only request fence in
-  `lib/plugin-updater.js` **and** the `updates` Config off-switch. Both must stay
-  in place; without the switch it can overwrite this checkout from the registry.
+- The updater is double-gated: loopback-only request fence in
+  `lib/plugin-updater.js` **and** the `updates` Config switch. It reads versions
+  from our Forgejo registry and installs through a temporary scoped `.npmrc`;
+  without the switch it can replace a `link:` checkout with the published
+  package.
 - Do not add network calls to the settings form path that are not same-origin.
 
 ## Known limitations / next steps
@@ -424,10 +464,10 @@ regression gate for edits to `lib/client.js`.
 - `lib/client.js` is built output; when the private TypeScript source is next
   regenerated, the settings-section registration and the route-backed form must
   be carried over there (or this fix will regress on the next publish).
-- The one-click auto-updater exists but is **disabled here** (`updates: false`)
-  and is not exercised. It installs the npm tarball into the profile and would
-  replace the `link:` checkout; only re-enable it after verifying what npm would
-  install and accepting the loss of the fork patch.
+- The one-click updater points at our Forgejo registry but this profile keeps it
+  **disabled** (`updates: false`) for the `link:` dev checkout. Enabling it
+  replaces the checkout with the published package; the registry tarball carries
+  the fork code, so no patches are lost.
 - Additional `instances` are displayed read-only in the UI; they are configured
   through the profile/config document.
 - `plugins.item` remains registered for older DSH cores; on 0.2.x it is only a
@@ -498,3 +538,20 @@ accepted:
 4. Adopted the pvlb.dev bootcamp orientation, house label axes and the
    known-tool-bug index. Consumers keep their own gotcha tables; this index is
    canonical.
+
+## Session log — CI, publishing and own updater (2026-10-23, later)
+
+1. Dropped the maintained `README.ru.md` / `README.zh.md` translations (and their
+   `package.json#files` and leak-scan entries); `README.md` is the single README.
+2. Added `.forgejo/workflows/ci.yml` (push to `master`: `npm run check` +
+   `npm pack --dry-run`) and `publish.yml` (tag `v*`: tag/version guard, publish
+   to the Forgejo npm registry with `NPM_TOKEN`, duplicate-skip). No PR trigger.
+3. Repointed the in-UI updater at
+   `https://git.pvlb.dev/api/packages/dsh-plugins/npm/`: it reads the packument's
+   `dist-tags.latest` (Forgejo 17 has no `/latest`) and installs through a
+   throwaway scoped `.npmrc`, keeping runtime deps on npmjs. The `updates` switch
+   stays `false` for this `link:` checkout.
+4. Verified the registry path end-to-end: a throwaway `@goodandready/...-probe`
+   published and was deleted via the API; the repo has `NPM_TOKEN`; live
+   `latestVersion('dsh-resend-mcp')` returned `0.1.2`. Release `0.7.40-dsh.3`
+   publishes on its tag.
