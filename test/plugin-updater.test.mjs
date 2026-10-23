@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { delimiter, join } from 'node:path'
 import test from 'node:test'
 
 import {
@@ -12,6 +12,7 @@ import {
   latestVersion,
   packumentLatest,
   registryAuthKey,
+  updaterPath,
 } from '../lib/plugin-updater.js'
 
 const REGISTRY = 'https://git.pvlb.dev/api/packages/dsh-plugins/npm/'
@@ -96,6 +97,12 @@ test('registryAuthKey is the npm URI-fragment form', () => {
     registryAuthKey('https://git.example.com/api/packages/owner/npm'),
     '//git.example.com/api/packages/owner/npm/:_authToken',
   )
+})
+
+test('updaterPath puts the node bin dir and PNPM_HOME before PATH', () => {
+  const env = { PATH: ['/usr/bin', '/bin'].join(delimiter), PNPM_HOME: '/opt/pnpm' }
+  const parts = updaterPath(env, '/opt/node/bin/node').split(delimiter)
+  assert.deepEqual(parts, ['/opt/node/bin', '/opt/pnpm', '/usr/bin', '/bin'])
 })
 
 test('createRegistryUserconfig points the package at Forgejo but keeps DSH peers on npmjs', async () => {
