@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.7.40-dsh.7] - 2026-10-24
+
+### Never override the default npm registry during updates
+- The updater installs the exact version's tarball URL and its temporary
+  `.npmrc` only adds our auth entry; the user's default registry (normally
+  npmjs) is preserved. Previously it set `registry=<forgejo>`, so pnpm tried to
+  resolve every other profile package (e.g. `dsh-cost-meter`) from Forgejo and
+  failed with `ERR_PNPM_META_FETCH_FAIL`; `remove` failed the same way.
+- Profiles that mix the Forgejo package with npmjs packages no longer need a
+  registry override: keep npmjs as the default and install `dsh-gitea` from the
+  explicit tarball URL.
+
 ## [0.7.40-dsh.6] - 2026-10-24
 
 ### Make the in-UI updater work from a minimal service PATH

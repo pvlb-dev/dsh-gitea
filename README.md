@@ -26,7 +26,7 @@ keep our patch set small, and tag what is live. The full operational contract �
 DSH slot matrix, settings contract, install loop, failure table — lives in
 [AGENTS.md](AGENTS.md).
 
-- Fork version: `0.7.40-dsh.6` (see [Versioning](#versioning))
+- Fork version: `0.7.40-dsh.7` (see [Versioning](#versioning))
 - Base: upstream `abfd952`, checked against DSH `0.2.0-rc.2` and Forgejo
   `17.0.0+gitea-1.22.0`
 
@@ -215,22 +215,27 @@ Install a published build into a profile:
 ```bash
 # the package tarball; its dependencies resolve from npmjs normally
 dsh plugin --profile web add \
-  https://git.pvlb.dev/api/packages/dsh-plugins/npm/dsh-gitea/-/0.7.40-dsh.6/dsh-gitea-0.7.40-dsh.6.tgz
+  https://git.pvlb.dev/api/packages/dsh-plugins/npm/dsh-gitea/-/0.7.40-dsh.7/dsh-gitea-0.7.40-dsh.7.tgz
 ```
 
 The in-UI updater reads the registry packument's `dist-tags.latest` (Forgejo 17
-does not serve npmjs's `/latest` alias) and installs `dsh-gitea@<version>` through
-a throwaway `.npmrc`; the package is dependency-free, so only the `@deepseek-ai`
-peers come from npmjs. The `updates` Config switch gates it; this profile keeps it
-`false` for the `link:` development checkout. Turning it on lets the next update
-replace that checkout with the published package.
+does not serve npmjs's `/latest` alias) and installs the exact tarball URL through
+a throwaway `.npmrc`; the default registry is left alone (normally npmjs), so the
+rest of the profile's packages still resolve normally. The `updates` Config
+switch gates it; this profile keeps it `false` for the `link:` development
+checkout. Turning it on lets the next update replace that checkout with the
+published package.
+
+Do **not** set the default npm registry to the Forgejo registry: pnpm would then
+look for the profile's other packages (`dsh-cost-meter`, etc.) there and 404.
+Keep npmjs as the default and use the explicit tarball URL above.
 
 Release ritual:
 
 ```bash
 # bump package.json + CHANGELOG, commit, push
-git tag -a v0.7.40-dsh.6 -m "…"
-git push origin master v0.7.40-dsh.6   # the tag triggers publish.yml
+git tag -a v0.7.40-dsh.7 -m "…"
+git push origin master v0.7.40-dsh.7   # the tag triggers publish.yml
 ```
 
 ## Upstream policy and sync
@@ -254,9 +259,9 @@ self-contained and is the best PR candidate.
 
 ## Versioning
 
-- Format: `<upstream base>-dsh.<n>` — currently `0.7.40-dsh.6`.
+- Format: `<upstream base>-dsh.<n>` — currently `0.7.40-dsh.7`.
 - Every live state is tagged `v<version>`. Rollback is
-  `git checkout v0.7.40-dsh.6`, then toggle the bundle off/on and hard-refresh.
+  `git checkout v0.7.40-dsh.7`, then toggle the bundle off/on and hard-refresh.
 - `CHANGELOG.md` gets a fork entry per release; upstream entries stay untouched.
 
 ## Development and checks

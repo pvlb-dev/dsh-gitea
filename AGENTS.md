@@ -89,7 +89,7 @@ this table — same sitting.
   `@goodandready/dsh-gitea`; the old scoped package stays in the registry for
   pinned installs). The bundle row id and Settings namespace stay `dsh-gitea`, so
   the `plugins.row.config` key is now `dsh-gitea#dsh-gitea`.
-  Fork version: `0.7.40-dsh.6` (see "Versioning and tags"). Runtime peer line:
+  Fork version: `0.7.40-dsh.7` (see "Versioning and tags"). Runtime peer line:
   DSH `0.1.7-rc.2` / `0.2.0-rc.x` (`peerDependencies`).
 - Remotes:
   - `origin` = `ssh://git@git.pvlb.dev/dsh-plugins/dsh-gitea.git` — our private
@@ -163,10 +163,10 @@ this table — same sitting.
 
 ### Versioning and tags
 
-- Version format `<upstream base>-dsh.<n>` (currently `0.7.40-dsh.6`): semver
+- Version format `<upstream base>-dsh.<n>` (currently `0.7.40-dsh.7`): semver
   valid, visibly a fork, and still comparable to upstream releases.
 - Tag every state that is live on the server as `v<version>` (for example
-  `v0.7.40-dsh.6`). Rollback = `git checkout <tag>`, toggle the bundle off/on,
+  `v0.7.40-dsh.7`). Rollback = `git checkout <tag>`, toggle the bundle off/on,
   hard-refresh.
 - Add a fork entry to `CHANGELOG.md` per release; leave upstream entries intact.
 
@@ -192,9 +192,9 @@ this table — same sitting.
   dsh plugin --profile web add \
     https://git.pvlb.dev/api/packages/dsh-plugins/npm/dsh-gitea/-/<version>/dsh-gitea-<version>.tgz
   ```
-  The in-UI updater instead runs `dsh plugin add dsh-gitea@<version>` with a
-  temporary `.npmrc` that points the package at our registry and the
-  `@deepseek-ai` peer scope at npmjs.
+  The in-UI updater instead installs the exact tarball URL with a temporary
+  `.npmrc` that leaves the default registry (npmjs) alone, so other profile
+  packages still resolve normally.
 
 ## Ground rules
 
@@ -216,9 +216,9 @@ this table — same sitting.
    push only to `origin/master` (no force push).
 6. **The updater installs our own package, not upstream's.** It reads
    `dist-tags.latest` from
-   `https://git.pvlb.dev/api/packages/dsh-plugins/npm/` and runs
-   `dsh plugin add dsh-gitea@<version>` with a throwaway `.npmrc`. The `updates`
-   Config flag gates both the UI and
+   `https://git.pvlb.dev/api/packages/dsh-plugins/npm/` and installs the exact
+   tarball URL with a throwaway `.npmrc` that leaves the default registry
+   (normally npmjs) alone. The `updates` Config flag gates both the UI and
    `/api/dsh-gitea/update` (`isEnabled` in `lib/index.js`); this profile keeps it
    `false` for the `link:` dev checkout. Enabling it lets the next update replace
    that checkout with the published package — deliberate, not an accident.
@@ -378,8 +378,8 @@ dsh plugin --profile web add \
 ```
 
 The tarball install resolves dependencies from npmjs normally. The in-UI updater
-uses `dsh plugin add dsh-gitea@<version>` with a temporary `.npmrc` that points
-the package at our registry and the `@deepseek-ai` peer scope at npmjs.
+installs the same explicit tarball URL with a temporary `.npmrc` that leaves the
+default registry alone, so other profile packages still resolve normally.
 
 A registry install needs no `dev:link`; the DSH peers come from the profile.
 
@@ -447,8 +447,9 @@ regression gate for edits to `lib/client.js`.
 | Save appears successful but is lost on restart | write bypassed the Settings service | persist via `servedScope.update`; check `writable` |
 | Settings page has no Plugin Auto-Updater panel | `updates: false` — the fork default in this profile | expected; enabling it lets the Forgejo registry package replace the `link:` checkout |
 | `/api/dsh-gitea/update` answers 403 `code: "disabled"` | Config `updates: false` | expected on this fork; never remove the gate |
-| A `link:` checkout was replaced by the published package | the updater (or a manual `dsh plugin add`) installed the registry tarball | `git checkout v0.7.40-dsh.6`, toggle the bundle off/on, keep `updates: false` for dev |
-| Plugin update fails with `Plugin update failed: …` | `dsh plugin` cannot find pnpm on the DSH unit's PATH, or pnpm itself failed | check `<profile>/.plugin-manager/logs/operation-*/pnpm.log`; 0.7.40-dsh.6 prepends the Node bin dir and `PNPM_HOME` to the updater PATH |
+| A `link:` checkout was replaced by the published package | the updater (or a manual `dsh plugin add`) installed the registry tarball | `git checkout v0.7.40-dsh.7`, toggle the bundle off/on, keep `updates: false` for dev |
+| Plugin update fails with `Plugin update failed: …` | `dsh plugin` cannot find pnpm on the DSH unit's PATH, or pnpm itself failed | check `<profile>/.plugin-manager/logs/operation-*/pnpm.log`; 0.7.40-dsh.6+ prepends the Node bin dir and `PNPM_HOME` to the updater PATH |
+| pnpm 404s on `dsh-cost-meter`/other npmjs packages during add/remove | the default npm registry was set to the Forgejo registry | restore `registry=https://registry.npmjs.org/` in `~/.npmrc`; install `dsh-gitea` from its tarball URL (0.7.40-dsh.7 leaves the default registry alone) |
 | Tools resolve wrong owner/repo | no `defaultOwner`/`defaultRepo` and no git origin in the session cwd | configure defaults or pass owner/repo |
 | Plugin silently absent after a DSH upgrade | peer range does not name the new prerelease line | extend the `peerDependencies` range for every `@deepseek-ai/dsh-*` peer |
 
@@ -606,3 +607,16 @@ accepted:
 3. Released `0.7.40-dsh.6`. An already-installed older updater cannot install
    this fix itself; bootstrap it once with a manual `dsh plugin add <tarball>`
    (pnpm on PATH), then the in-UI updater works.
+
+## Session log — tarball installs and default-registry safety (2026-10-24)
+
+1. A local profile had `registry=https://git.pvlb.dev/.../npm/` as the default;
+   pnpm then looked up `dsh-cost-meter` there, failed with
+   `ERR_PNPM_META_FETCH_FAIL`, and both `add` and `remove` broke.
+2. The updater now installs the exact version's tarball URL; its temporary
+   `.npmrc` only adds our auth entry and leaves the default registry (npmjs)
+   alone. `createRegistryUserconfig` no longer writes a default `registry=` for
+   the unscoped package.
+3. Released `0.7.40-dsh.7`. An installed dsh.6 updater still overrides the
+   registry; restore npmjs and update once via the tarball URL, then the UI
+   updater works.
