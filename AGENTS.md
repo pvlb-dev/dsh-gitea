@@ -58,9 +58,11 @@ Consumers mirror this table and link here.
 | empty/unknown results print a bare `OK` | `formatters.js` fallbacks | verify via REST or a second query | #5 | fixed in `4d77e9f` |
 | `gitea_labels list` hides numeric ids | generic array formatter | REST `/labels` | #7 | fixed in `4d77e9f` |
 | `gitea_repo_contents` returns the path | `formatters.js` `data.path` branch | clone, or REST `/contents/<path>` | #3 | open |
-| `gitea_wiki get` returns metadata only | API is metadata-only; no wiki formatter | clone `<repo>.wiki.git` | #4 | open |
+| `gitea_wiki get` returns no content | API is metadata-only; body lives in `<repo>.wiki.git` | metadata formatter + body caveat; clone the wiki repo for text | #4 | metadata fixed in `30ce29d`; body still needs clone |
 | `gitea_issue_create` drops labels/assignee/milestone | `issues.js` create handler + tool def | create, then `gitea_labels set` | #6 | open |
 | `gitea_label_bootstrap` uses the upstream taxonomy | `label-bootstrap.js` | create house labels by hand | #8 | open |
+| `gitea_wiki list` errors on an empty wiki | `listWikiPages` surfaced the API's 404 | none | #9 | fixed in `913013a` |
+| `gitea_wiki` has no create/update/delete | handler/defs/client implemented only list/get | clone the wiki repo, commit, push | #10 | fixed in `fbca62a` |
 
 Fixing a tool bug = one issue, one PR, a formatter test, and a row update in
 this table — same sitting.
@@ -620,3 +622,26 @@ accepted:
 3. Released `0.7.40-dsh.7`. An installed dsh.6 updater still overrides the
    registry; restore npmjs and update once via the tarball URL, then the UI
    updater works.
+
+## Session log — wiki read/write fixes (2026-10-24)
+
+Triage of the six open issues found all six real, with one stale symptom: #4's
+bare `OK` had already been fixed by #5 (`4d77e9f`), but `get` still returned no
+body. The operator asked for the wiki trio first; #3, #6 and #8 remain open.
+
+1. #9 (`913013a`, PR #13): `listWikiPages()` maps the API's 404 for an
+   enabled-but-empty wiki to `{ ok: true, status: 404, data: [] }`; 401/403/5xx
+   still fail. `test/wiki.test.mjs` covers the 404, a non-empty list and the
+   failure statuses.
+2. #4 (`30ce29d`, PR #14): a `gitea_wiki` formatter renders title, slug, URL and
+   last-commit summary; `sub_url`/`last_commit` were added to `RECORD_KEYS`
+   because `slimRecord` stripped them before the formatter. The description and
+   output say the body is metadata-only and lives in `<repo>.wiki.git`.
+3. #10 (`fbca62a`, PR #15): `gitea_wiki` gained `create`/`update`/`delete`
+   (`POST /wiki/new`, `PATCH|DELETE /wiki/page/{pageName}`) with base64 bodies
+   and `confirm: true` for delete. Live CRUD on `ml-lab/tardits` showed Forgejo
+   derives the slug itself: title `Probe-Page` became slug `Probe-Page.-`, so
+   `list` now prints `Title (pageName: <slug>)` and the description says to use
+   that slug. The probe page was deleted afterwards (wiki empty again).
+4. `npm test` 60/60, leak scan clean, `node --check` clean. Host edits were
+   picked up by HMR; no bundle toggle was needed.

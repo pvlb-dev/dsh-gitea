@@ -1,5 +1,18 @@
 # Changelog
 
+## [Unreleased]
+
+### Wiki: readable metadata, empty wikis, and write actions
+- `gitea_wiki list` no longer fails with "The target couldn't be found." on an
+  enabled-but-empty wiki; the API's 404 is an empty page list (#9, `913013a`).
+- `gitea_wiki get` renders title, slug, URL and last-commit summary instead of
+  an identifier. The body remains metadata-only (clone `<repo>.wiki.git`);
+  `sub_url` and `last_commit` now survive `slimRecord` (#4, `30ce29d`).
+- `gitea_wiki` gained `create`, `update` and `delete` (`POST /wiki/new`,
+  `PATCH|DELETE /wiki/page/{pageName}`), with base64 bodies and `confirm: true`
+  for delete. `list` shows the canonical `pageName` slug that writes must use
+  (#10, `fbca62a`).
+
 ## [0.7.40-dsh.7] - 2026-10-24
 
 ### Never override the default npm registry during updates

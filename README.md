@@ -37,7 +37,8 @@ instance and gives the agent structured, safety-railed access to it:
 
 - **20+ agent tools** — issues (create/update/comment/close, timeline,
   duplicates, templates), pull requests (list/get/create/merge/review/line
-  comments/conflicts), branches, tags, releases, packages, wiki, milestones,
+  comments/conflicts), branches, tags, releases, packages, wiki (metadata,
+  create/update/delete), milestones,
   labels, CI runs and log analysis, worktrees, repository search.
 - **Settings page** under **Settings → Gitea** (and the Plugins row's
   Configure page) — connection, credentials, defaults, webhooks, background
