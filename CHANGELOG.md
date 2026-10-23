@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.7.40-dsh.2] - 2026-10-23
+
+### Tool trust patch: complete lists, no bare OK, label ids (#2, #5, #7)
+- **`gitea_issue_list` no longer truncates silently (#2)**: the formatter applied
+  `data.slice(0, 20)` to every array result whatever the API page size. It now
+  renders every row up to 100 and, beyond that, appends an explicit
+  `… and N more — narrow the filter or page through.` footer.
+- **No result is a bare `OK` any more (#5)**: empty arrays return a per-tool
+  message (`No issues.`, `No labels.`, `No pull requests.`, …, fallback
+  `No results.`); unknown objects return identifying fields (`name`/`title`/
+  `login`/`number`/`path`) plus a ≤300-char JSON snippet; `{ok:true}` with no
+  payload returns `Done.`
+- **`gitea_labels list` exposes numeric ids (#7)**: each label renders as
+  `type/bug (id: 13, #e11d48) — Defect…`, so `action: "set"` can consume the
+  list output; a successful `create` echoes `Label "…" created (id N).`;
+  `slimRecord` keeps `color`/`description` on label-shaped records. Lists over
+  100 rows get the same visible footer.
+- **Tests**: new `test/handlers-formatters.test.mjs` (13 cases) covers the
+  acceptance lists; `npm test` is 25/25 and `npm run test:leaks` is clean.
+- **Branch**: the repository default branch is now `master` (was `main`), and
+  the old `main` was removed on the forge.
+
 ## [0.7.40-dsh.1] - 2026-10-22
 
 ### Fork hardening: updater off-switch, docs, versioning

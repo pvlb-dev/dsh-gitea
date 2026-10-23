@@ -24,7 +24,7 @@ keep our patch set small, and tag what is live. The full operational contract �
 DSH slot matrix, settings contract, install loop, failure table — lives in
 [AGENTS.md](AGENTS.md).
 
-- Fork version: `0.7.40-dsh.1` (see [Versioning](#versioning))
+- Fork version: `0.7.40-dsh.2` (see [Versioning](#versioning))
 - Base: upstream `abfd952`, checked against DSH `0.2.0-rc.2` and Forgejo
   `17.0.0+gitea-1.22.0`
 
@@ -211,9 +211,9 @@ self-contained and is the best PR candidate.
 
 ## Versioning
 
-- Format: `<upstream base>-dsh.<n>` — currently `0.7.40-dsh.1`.
+- Format: `<upstream base>-dsh.<n>` — currently `0.7.40-dsh.2`.
 - Every live state is tagged `v<version>`. Rollback is
-  `git checkout v0.7.40-dsh.1`, then toggle the bundle off/on and hard-refresh.
+  `git checkout v0.7.40-dsh.2`, then toggle the bundle off/on and hard-refresh.
 - `CHANGELOG.md` gets a fork entry per release; upstream entries stay untouched.
 
 ## Development and checks

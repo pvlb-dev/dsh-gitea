@@ -87,7 +87,7 @@ this table — same sitting.
   target for generated files.
 - Package identity: `@goodandready/dsh-gitea` — the name is kept unchanged so the
   bundle row id, Settings namespace, and `plugins.row.config` key stay stable.
-  Fork version: `0.7.40-dsh.1` (see "Versioning and tags"). Runtime peer line:
+  Fork version: `0.7.40-dsh.2` (see "Versioning and tags"). Runtime peer line:
   DSH `0.1.7-rc.2` / `0.2.0-rc.x` (`peerDependencies`).
 - Remotes:
   - `origin` = `ssh://git@git.pvlb.dev/dsh-plugins/dsh-gitea.git` — our private
@@ -157,10 +157,10 @@ this table — same sitting.
 
 ### Versioning and tags
 
-- Version format `<upstream base>-dsh.<n>` (currently `0.7.40-dsh.1`): semver
+- Version format `<upstream base>-dsh.<n>` (currently `0.7.40-dsh.2`): semver
   valid, visibly a fork, and still comparable to upstream releases.
 - Tag every state that is live on the server as `v<version>` (for example
-  `v0.7.40-dsh.1`). Rollback = `git checkout <tag>`, toggle the bundle off/on,
+  `v0.7.40-dsh.2`). Rollback = `git checkout <tag>`, toggle the bundle off/on,
   hard-refresh.
 - Add a fork entry to `CHANGELOG.md` per release; leave upstream entries intact.
 
@@ -398,7 +398,7 @@ regression gate for edits to `lib/client.js`.
 | Save appears successful but is lost on restart | write bypassed the Settings service | persist via `servedScope.update`; check `writable` |
 | Settings page has no Plugin Auto-Updater panel | `updates: false` — the fork default in this profile | expected; only enable it if you deliberately want npm to replace the `link:` checkout |
 | `/api/dsh-gitea/update` answers 403 `code: "disabled"` | Config `updates: false` | expected on this fork; never remove the gate |
-| Fork fixes disappeared after a plugin/DSH update | the one-click updater installed the upstream npm tarball over the checkout | `git checkout v0.7.40-dsh.1`, toggle the bundle off/on, keep `updates: false` |
+| Fork fixes disappeared after a plugin/DSH update | the one-click updater installed the upstream npm tarball over the checkout | `git checkout v0.7.40-dsh.2`, toggle the bundle off/on, keep `updates: false` |
 | Tools resolve wrong owner/repo | no `defaultOwner`/`defaultRepo` and no git origin in the session cwd | configure defaults or pass owner/repo |
 | Plugin silently absent after a DSH upgrade | peer range does not name the new prerelease line | extend the `peerDependencies` range for every `@deepseek-ai/dsh-*` peer |
 
