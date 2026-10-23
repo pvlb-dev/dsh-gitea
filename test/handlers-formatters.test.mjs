@@ -59,7 +59,7 @@ test('empty lists get a per-tool message (#5)', () => {
 })
 
 test('unknown objects render an identifying line plus a bounded snippet (#5)', () => {
-  const out = text('gitea_wiki', ok({ title: 'Onboarding', content: 'x'.repeat(400) }))
+  const out = text('gitea_unknown_tool', ok({ title: 'Onboarding', content: 'x'.repeat(400) }))
   const [head, snippet] = out.split('\n')
   assert.equal(head, 'title: Onboarding')
   assert.ok(snippet.length <= 300, `snippet is ${snippet.length} chars`)
@@ -129,6 +129,34 @@ test('slimRecord keeps colour and description on label objects (#7)', () => {
     url: 'https://git.pvlb.dev/labels/39',
   })
   assert.deepEqual(slim, { id: 39, name: 'type/bug', color: 'e11d48', description: 'Defect' })
+})
+
+// #4 — wiki get used to collapse to the page title / a bare OK with no body.
+test('wiki get renders title, slug, URL and last commit (#4)', () => {
+  const out = text('gitea_wiki', ok({
+    title: 'DSH Bootcamp',
+    sub_url: 'DSH-Bootcamp',
+    html_url: 'https://git.pvlb.dev/pvlb-infra/t14-deeps/wiki/DSH-Bootcamp',
+    last_commit: { sha: 'abcdef1234567890', message: 'docs: bootcamp\n\nlong body' },
+  }))
+  assert.match(out, /^Wiki page: DSH Bootcamp$/m)
+  assert.match(out, /^Slug: DSH-Bootcamp$/m)
+  assert.match(out, /^URL: https:\/\/git\.pvlb\.dev\/pvlb-infra\/t14-deeps\/wiki\/DSH-Bootcamp$/m)
+  assert.match(out, /^Last commit: abcdef12 docs: bootcamp$/m)
+  assert.match(out, /not available from the REST API/)
+  assert.match(out, /\.wiki\.git/)
+})
+
+test('wiki metadata survives slimRecord and never becomes a bare OK (#4)', () => {
+  const slim = slimRecord({
+    title: 'Home',
+    sub_url: 'Home',
+    html_url: 'https://git.pvlb.dev/pvlb-infra/vps-setup/wiki/Home',
+    last_commit: { sha: 'abcdef1234567890', message: 'init' },
+  })
+  assert.equal(slim.sub_url, 'Home')
+  assert.deepEqual(slim.last_commit, { sha: 'abcdef1234567890', message: 'init' })
+  assert.notEqual(text('gitea_wiki', ok(slim)).trim(), 'OK')
 })
 
 test('failed calls still report the failure (#5 sanity)', () => {
