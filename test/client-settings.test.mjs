@@ -147,6 +147,16 @@ test('fork off-switch: config flag gates the in-UI updater everywhere', () => {
   assert.match(client, /maybeCheckUpdates\(data && data\.config\)/)
 })
 
+test('updater is pointed at the pvlb.dev Forgejo registry', () => {
+  // The fork publishes its own package; the updater must never install the
+  // upstream npmjs tarball over this tree.
+  assert.match(hostEntry, /const UPDATE_REGISTRY = 'https:\/\/git\.pvlb\.dev\/api\/packages\/dsh-plugins\/npm\/'/)
+  assert.match(hostEntry, /registry: UPDATE_REGISTRY/)
+  assert.match(hostEntry, /resolveRegistryToken: \(\) => resolveToken\(live\(\)\.tokenEnv\)/)
+  assert.match(client, /pvlb\.dev Forgejo npm registry/)
+  assert.match(client, /pvlb\.dev npm registry/)
+})
+
 test('plugin updater refuses every request while the off-switch is off', async () => {
   const registrations = []
   const ctx = {
