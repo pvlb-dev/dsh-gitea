@@ -68,6 +68,20 @@ Consumers mirror this table and link here.
 Fixing a tool bug = one issue, one PR, a formatter test, and a row update in
 this table — same sitting.
 
+### QA sweep index (2026-10-24)
+
+A tester session exercised 95 distinct tool implementations; its 20 findings
+(#19–#38) are fixed and closed. Grouped index:
+
+| Domain | Issues | Fix commit |
+|---|---|---|
+| PR/merge semantics | #23, #24, #37, #38 | `234cbd4` |
+| Defaults and integrations | #19, #20, #21, #22, #29, #30, #35 | `281eade` |
+| Output formatters | #25, #26, #27, #32, #33, #34 | `56f41de`, `fbcef26` |
+| Release and packages | #28, #31, #36 | `b74ca23` |
+
+The tracker holds the repros and acceptance notes; this table is the index.
+
 ## What this repository is
 
 - A DSH **profile bundle + plugin** that connects the Harness to a self-hosted
@@ -92,7 +106,7 @@ this table — same sitting.
   `@goodandready/dsh-gitea`; the old scoped package stays in the registry for
   pinned installs). The bundle row id and Settings namespace stay `dsh-gitea`, so
   the `plugins.row.config` key is now `dsh-gitea#dsh-gitea`.
-  Fork version: `0.7.40-dsh.7` (see "Versioning and tags"). Runtime peer line:
+  Fork version: `0.8.0` (see "Versioning and tags"). Runtime peer line:
   DSH `0.1.7-rc.2` / `0.2.0-rc.x` (`peerDependencies`).
 - Remotes:
   - `origin` = `ssh://git@git.pvlb.dev/dsh-plugins/dsh-gitea.git` — our private
@@ -166,10 +180,10 @@ this table — same sitting.
 
 ### Versioning and tags
 
-- Version format `<upstream base>-dsh.<n>` (currently `0.7.40-dsh.7`): semver
-  valid, visibly a fork, and still comparable to upstream releases.
+- Fork version: `0.8.0` (milestone release after the QA sweep). Earlier builds
+  used `<upstream base>-dsh.<n>`; hotfixes can use `0.8.0-dsh.<n>` if needed.
 - Tag every state that is live on the server as `v<version>` (for example
-  `v0.7.40-dsh.7`). Rollback = `git checkout <tag>`, toggle the bundle off/on,
+  `v0.8.0`). Rollback = `git checkout <tag>`, toggle the bundle off/on,
   hard-refresh.
 - Add a fork entry to `CHANGELOG.md` per release; leave upstream entries intact.
 
@@ -450,7 +464,7 @@ regression gate for edits to `lib/client.js`.
 | Save appears successful but is lost on restart | write bypassed the Settings service | persist via `servedScope.update`; check `writable` |
 | Settings page has no Plugin Auto-Updater panel | `updates: false` — the fork default in this profile | expected; enabling it lets the Forgejo registry package replace the `link:` checkout |
 | `/api/dsh-gitea/update` answers 403 `code: "disabled"` | Config `updates: false` | expected on this fork; never remove the gate |
-| A `link:` checkout was replaced by the published package | the updater (or a manual `dsh plugin add`) installed the registry tarball | `git checkout v0.7.40-dsh.7`, toggle the bundle off/on, keep `updates: false` for dev |
+| A `link:` checkout was replaced by the published package | the updater (or a manual `dsh plugin add`) installed the registry tarball | `git checkout v0.8.0`, toggle the bundle off/on, keep `updates: false` for dev |
 | Plugin update fails with `Plugin update failed: …` | `dsh plugin` cannot find pnpm on the DSH unit's PATH, or pnpm itself failed | check `<profile>/.plugin-manager/logs/operation-*/pnpm.log`; 0.7.40-dsh.6+ prepends the Node bin dir and `PNPM_HOME` to the updater PATH |
 | pnpm 404s on `dsh-cost-meter`/other npmjs packages during add/remove | the default npm registry was set to the Forgejo registry | restore `registry=https://registry.npmjs.org/` in `~/.npmrc`; install `dsh-gitea` from its tarball URL (0.7.40-dsh.7 leaves the default registry alone) |
 | Tools resolve wrong owner/repo | no `defaultOwner`/`defaultRepo` and no git origin in the session cwd | configure defaults or pass owner/repo |
@@ -670,3 +684,25 @@ The operator asked to clear the remaining open issues before bumping to 0.8.
    exactly the 11 house labels left on the lab repo.
 5. `npm test` 81/81, leak scan clean, `node --check` clean. Next: the
    tester-Deeps sweep, then the 0.8 bump.
+
+## Session log — QA sweep fixes and 0.8.0 (2026-10-24)
+
+The tester session filed 20 issues (#19–#38) across 95 distinct tool
+implementations; the operator asked to fix all of them before the 0.8 bump.
+
+1. Batch A (`234cbd4`, PR #39): merged-PR `pr_get`, conflict-resolve dry-run,
+   invalid conflict refs, merged merge-readiness.
+2. Batch B (`281eade`, PR #40): health error matching, repo-default branch,
+   webhook `content_type`, memory `format`, incident dry-run + house labels,
+   exact-title duplicates, task-tracker wording.
+3. Batch C (`56f41de`, PR #41; `fbcef26`, PR #42): commit/PR-file/compare,
+   CI status/jobs/run (including Forgejo's bare `ActionRunJob[]`), code search,
+   PR analysis, notifications/users/org, timeline. `RECORD_KEYS` gained the
+   fields these formatters need.
+4. Batch D (`b74ca23`, PR #43): release range from `v<current_version>`,
+   assistant validate/notes output, package_get via the working package list.
+5. Live-checked every batch through HMR (including a fresh CI run for the
+   jobs array). Closed all 20 issues with the fix commits.
+6. Released `0.8.0`: milestone version, `[0.8.0]` changelog, AGENTS/README
+   version updates, tag `v0.8.0` → publish workflow. Test suite 141, leak scan
+   and syntax clean.

@@ -1,6 +1,58 @@
 # Changelog
 
-## [Unreleased]
+## [0.8.0] - 2026-10-24
+
+### QA sweep: 20 tool defects found and fixed (#19–#38)
+
+A full tool-surface QA sweep filed 20 issues; all are fixed and closed.
+
+**PR and merge semantics**
+- `gitea_pr_get` renders a merged PR as a PR (title, state, branches, URL, body)
+  instead of one merge line (#23, `234cbd4`).
+- `gitea_pr_conflict_resolve` reports a dry-run no-op without `confirm` instead
+  of “Applied” (#24, `234cbd4`).
+- `gitea_conflict_analyze` errors on a nonexistent base/head branch instead of
+  reporting 0 conflicts (#37, `234cbd4`).
+- `gitea_merge_readiness`/`gitea_auto_merge` report an already-merged PR as
+  merged, not “NOT ready” (#38, `234cbd4`).
+
+**Defaults and integrations**
+- `gitea_project_health` no longer treats “unprotected” as a pulls API error
+  (#19, `281eade`).
+- `gitea_security_audit`/`gitea_branch_protection_*` default to the repository
+  default branch and reject a missing explicit branch (#20, `281eade`).
+- `gitea_webhooks create` sends `config.content_type` (and accepts it as a
+  parameter) (#21, `281eade`).
+- `gitea_memory_brain_sync` implements the advertised (and default) `format`
+  action (#22, `281eade`).
+- `gitea_incident_report` dry runs are previews, not “Created”; creation uses
+  house labels and resolved ids (#29, `281eade`).
+- `gitea_issue_duplicates` keeps an exact-title match even with a long existing
+  body and renders a readable candidate list (#30, `281eade`).
+- `gitea_task_tracker_sync` reports what read-only actions actually did (#35,
+  `281eade`).
+
+**Output formatters**
+- Commit, PR-file and compare lists render summaries instead of JSON (#25,
+  `56f41de`).
+- CI status/jobs/run render run id, status, branch and links; jobs accept
+  Forgejo’s bare array (#26, `56f41de`, `fbcef26`).
+- `gitea_code_search` returns `path:line: snippet` with a global limit (#27,
+  `56f41de`).
+- PR summary/review/rebase/policy/template render their analysis (#32,
+  `56f41de`).
+- Notifications, user search and org members render readable lists (#33,
+  `56f41de`).
+- Issue timelines render label names, title changes, milestones, assignees and
+  reactions (#34, `56f41de`).
+
+**Release and packages**
+- `gitea_release_plan` starts at `v<current_version>` and fails clearly on a
+  missing tag (#28, `b74ca23`).
+- `gitea_release_assistant` renders `validate_semver` and `preview_notes`
+  instead of always claiming preflight (#31, `b74ca23`).
+- `gitea_package_get` finds packages from the working package list and lists
+  versions, with an optional `version` filter (#36, `b74ca23`).
 
 ### Wiki: readable metadata, empty wikis, and write actions
 - `gitea_wiki list` no longer fails with "The target couldn't be found." on an
