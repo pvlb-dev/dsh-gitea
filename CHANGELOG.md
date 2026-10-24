@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.8.2] - 2026-10-24
+
+### Public README, a one-line install and the mirror path
+
+- Rewrote `README.md` around what the plugin actually enables: a grouped catalog
+  of the 96 first-class tools (+37 compatibility aliases) across planning,
+  review/merge, repository, operations, worktrees and releases, then the
+  settings page and Git chip, a one-line install, a short configure section (the
+  token lives in the DSH credential store as `GITEA_TOKEN`), verification,
+  troubleshooting and a compact safety section. Development/CI material moved
+  below the user-facing parts; the upstream attribution stays.
+- Widened the `@deepseek-ai/dsh-*` peer ranges to
+  `>=0.1.7-rc.2 <0.2.0-0 || >=0.2.0-rc.1 <0.3.0-0 || >=0.2.1-0 <0.3.0-0`: the
+  running DSH `0.2.1-rc.2` line now satisfies them (`^0.2.0-rc.1` excluded
+  prereleases of a different patch line, so the profile would have denied the
+  plugin until an exemption was granted).
+- Package description now names the real tool surface instead of "20+ tools".
+- Added `scripts/mirror-public.mjs` and its test suite: the script builds a
+  sanitized, push-ready snapshot for a GitHub fork of the project (drops
+  internal files, rewrites home/mount/IP paths, runs the leak rules, never
+  pushes) and prints the PR-able `sanitized/main` graft commands.
+- The Forgejo repository is public and installs from
+  `https://git.pvlb.dev/dsh-plugins/dsh-gitea.git` need no checkout bootstrap.
+
 ## [0.8.1] - 2026-10-24
 
 ### Fix one-click updates on global installs

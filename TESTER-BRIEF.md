@@ -11,7 +11,7 @@ This is a QA role: **no code changes, no fixes, no releases.**
 > incorrect or unsafe behaviour, and file well-evidenced issues in
 > `dsh-plugins/dsh-gitea` — **not** to change code.
 >
-> First read `/home/dsh/Projects/dsh-gitea/TESTER-BRIEF.md` in full. Then:
+> First read `TESTER-BRIEF.md` in the checkout root in full. Then:
 > 1. enumerate the registered `gitea_*` tools (the harness tool list is the
 >    source of truth; do not trust a hardcoded count),
 > 2. work through them in domain batches using the protocol in the brief,
@@ -26,9 +26,8 @@ This is a QA role: **no code changes, no fixes, no releases.**
 
 ## Context
 
-- Repo: `dsh-plugins/dsh-gitea` on `https://git.pvlb.dev` (private fork).
-- Harness: DSH `0.2.0-rc.2`; plugin `0.7.40-dsh.7` (live link checkout; 0.8 is
-  planned after this sweep).
+- Repo: `dsh-plugins/dsh-gitea` on `https://git.pvlb.dev`.
+- Harness: DSH `0.2.1-rc.2`; plugin `0.8.1` (live `link:` checkout of the repo).
 - Instance: Forgejo `17.0.0+gitea-1.22.0`.
 - The six original tool issues (#2–#10) are closed; the wiki trio (#4, #9, #10)
   and #3/#6/#8 were fixed on 2026-10-24. Do not re-file them.

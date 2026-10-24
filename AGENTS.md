@@ -21,7 +21,7 @@ are private, so read it through an SSH clone, not `web_fetch`.
   `priority/now|next|later`.
 - This repo owns the `gitea_*` toolset: bugs found by any project agent are
   filed here, one defect per issue, and the table below is the index.
-- Environment: DSH `0.2.0-rc.2`, profile `web`, Forgejo 17.0.0; the box has
+- Environment: DSH `0.2.1-rc.2`, profile `web`, Forgejo 17.0.0; the box has
   1.9 GiB RAM and `workspace-write` forbids `sudo` — ask the operator.
 
 ## Issues and labels
@@ -86,13 +86,16 @@ The tracker holds the repros and acceptance notes; this table is the index.
 ## What this repository is
 
 - A DSH **profile bundle + plugin** that connects the Harness to a self-hosted
-  Gitea/Forgejo instance: 20+ agent tools, HTTP routes, a Git status chip in the
-  session header, and a settings page.
-- This checkout is **our private deployment fork** of the upstream public repo
+  Gitea/Forgejo instance: 96 first-class agent tools plus 37 compatibility
+  aliases (133 registered `gitea_*` names), HTTP routes, a Git status chip in
+  the session header, and a settings page.
+- This checkout is our **deployment fork** of the upstream public repo
   [`GooDAnDReaDY/dsh-gitea`](https://github.com/GooDAnDReaDY/dsh-gitea) (MIT).
   `origin` is our Forgejo, `upstream` is the GitHub project. The policy is
   **watch upstream, never develop against it** — see "Fork status and upstream
-  sync" below.
+  sync" below. The Forgejo repository is public (since 2026-10-24); a sanitized
+  snapshot can be mirrored to a GitHub fork with
+  `scripts/mirror-public.mjs`, never by pushing this history.
 - Upstream's public GitHub tree is the **sanitized publish output of a private
   development repo**: every upstream commit is `chore(publish): sanitized tree
   from <sha>`. `lib/` is what ships; there is no `src/` and no client build step
@@ -107,8 +110,11 @@ The tracker holds the repros and acceptance notes; this table is the index.
   `@goodandready/dsh-gitea`; the old scoped package stays in the registry for
   pinned installs). The bundle row id and Settings namespace stay `dsh-gitea`, so
   the `plugins.row.config` key is now `dsh-gitea#dsh-gitea`.
-  Fork version: `0.8.1` (see "Versioning and tags"). Runtime peer line:
-  DSH `0.1.7-rc.2` / `0.2.0-rc.x` (`peerDependencies`).
+  Fork version: `0.8.2` (see "Versioning and tags"). Runtime peer range:
+  `>=0.1.7-rc.2 <0.2.0-0 || >=0.2.0-rc.1 <0.3.0-0 || >=0.2.1-0 <0.3.0-0`
+  (`peerDependencies`) — widened on 2026-10-24 so the running `0.2.1-rc.2`
+  Harness satisfies it, because `^0.2.0-rc.1` excludes prereleases of a
+  different patch line.
 - Remotes:
   - `origin` = `ssh://git@git.pvlb.dev/dsh-plugins/dsh-gitea.git` — our private
     Forgejo, the **only** push target.
@@ -116,7 +122,7 @@ The tracker holds the repros and acceptance notes; this table is the index.
 
 ## This deployment (facts checked on 2026-10-22)
 
-- Harness: `dsh 0.2.0-rc.2`; the installed package is the `@deepseek-ai/dsh`
+- Harness: `dsh 0.2.1-rc.2`; the installed package is the `@deepseek-ai/dsh`
   directory in `node_modules` (resolve it from the running `dsh` binary or
   `$DSH_PACKAGE_DIR`).
 - Profile: `web`, directory `$DSH_PROFILE_DIR`; Web GUI on
@@ -171,9 +177,14 @@ The tracker holds the repros and acceptance notes; this table is the index.
   Conflict hotspots: `package.json` (version line), the top of `CHANGELOG.md`,
   and `lib/client.js` (generated bundle — our largest diff). Keep our functional
   patch, re-run the checks, toggle the bundle off/on, hard-refresh the browser.
-- Never push this tree to GitHub: it carries internal hostnames in `AGENTS.md`
-  and a fork-specific README. If we ever upstream something, isolate it into a
-  minimal branch or a patch file (`lib/http-guard.js` is self-contained) and keep
+- Never push this tree or its history to GitHub: it carries internal hostnames
+  in `AGENTS.md` and a fork-specific README. The supported route to a public
+  GitHub presence is a **sanitized snapshot**: `node scripts/mirror-public.mjs
+  --out /tmp/dsh-gitea-mirror --remote <github-url>` writes a clean tree, runs
+  the leak rules over it, commits once on `main` and prints the push commands
+  for a human to run — the script never pushes and never touches this working
+  tree. If we upstream a single fix instead, isolate it into a minimal branch or
+  a patch file (`lib/http-guard.js` is self-contained) and keep
   internal-context files out of it.
 - Publish only to our Forgejo npm registry (via CI); never to the public npm
   registry. This deployment's dev checkout installs by local path (`link:`),
@@ -181,8 +192,9 @@ The tracker holds the repros and acceptance notes; this table is the index.
 
 ### Versioning and tags
 
-- Fork version: `0.8.1` (0.8.0 milestone + the updater hotfix). Earlier builds
-  used `<upstream base>-dsh.<n>`; hotfixes can use `0.8.1-dsh.<n>` if needed.
+- Fork version: `0.8.2` (README/public-install + peer-range patch on top of
+  0.8.1). Earlier builds used `<upstream base>-dsh.<n>`; hotfixes can use
+  `0.8.2-dsh.<n>` if needed.
 - Tag every state that is live on the server as `v<version>` (for example
   `v0.8.1`). Rollback = `git checkout <tag>`, toggle the bundle off/on,
   hard-refresh.
@@ -262,6 +274,7 @@ The tracker holds the repros and acceptance notes; this table is the index.
 | `.forgejo/workflows/` | `ci.yml` (push checks) and `publish.yml` (tag → Forgejo npm registry) |
 | `scripts/dev-link-dsh.mjs` | Links DSH peer packages into this checkout for `link:` installs |
 | `scripts/leak-scan.mjs` | Fails on private paths/scopes/tokens/Cyrillic in the publishable tree |
+| `scripts/mirror-public.mjs` | Builds a sanitized, push-ready snapshot for a GitHub fork; never pushes |
 | `test/*.test.mjs` | Fork regression checks (`npm test`); upstream ships no tests, so this suite is ours |
 
 ## How DSH 0.2.x loads this plugin
@@ -465,7 +478,7 @@ regression gate for edits to `lib/client.js`.
 | Save appears successful but is lost on restart | write bypassed the Settings service | persist via `servedScope.update`; check `writable` |
 | Settings page has no Plugin Auto-Updater panel | `updates: false` — the fork default in this profile | expected; enabling it lets the Forgejo registry package replace the `link:` checkout |
 | `/api/dsh-gitea/update` answers 403 `code: "disabled"` | Config `updates: false` | expected on this fork; never remove the gate |
-| A `link:` checkout was replaced by the published package | the updater (or a manual `dsh plugin add`) installed the registry tarball | `git checkout v0.8.1`, toggle the bundle off/on, keep `updates: false` for dev |
+| A `link:` checkout was replaced by the published package | the updater (or a manual `dsh plugin add`) installed the registry tarball | `git checkout v0.8.2`, toggle the bundle off/on, keep `updates: false` for dev |
 | Plugin update fails with `Plugin update failed: …` | `dsh plugin` cannot find pnpm on the DSH unit's PATH, or pnpm itself failed | check `<profile>/.plugin-manager/logs/operation-*/pnpm.log`; 0.7.40-dsh.6+ prepends the Node bin dir and `PNPM_HOME` to the updater PATH |
 | pnpm 404s on `dsh-cost-meter`/other npmjs packages during add/remove | the default npm registry was set to the Forgejo registry | restore `registry=https://registry.npmjs.org/` in `~/.npmrc`; install `dsh-gitea` from its tarball URL (0.7.40-dsh.7 leaves the default registry alone) |
 | Tools resolve wrong owner/repo | no `defaultOwner`/`defaultRepo` and no git origin in the session cwd | configure defaults or pass owner/repo |
@@ -724,3 +737,36 @@ implementations; the operator asked to fix all of them before the 0.8 bump.
    button and shows a manual hint when `canAutoUpdate` is false. Tests 143/143.
 4. Released `0.8.1`. An installed 0.7.40-dsh.7 updater cannot fix itself, so
    0.8.1 needs one manual tarball bootstrap; subsequent UI updates work.
+
+## Session log — public README, 0.8.2 and the GitHub mirror path (2026-10-24)
+
+The operator asked for a README that sells the plugin to newcomers (what it is,
+what it enables, one-line install) instead of a fork runbook.
+
+1. Rebuilt `README.md` around the product: the 96 first-class tools (+37
+   compatibility aliases) grouped into six domains, the settings page/Git chip
+   and the non-tool surface, then one-line install, a short configure section
+   (credential name in `~/.dsh/.credentials.yaml`), verification, a 6-row
+   troubleshooting table and a safety section. Development, CI and upstream
+   attribution moved below the user-facing parts.
+2. Verified the install path end-to-end in throwaway pnpm projects: a bare
+   `https://…/dsh-gitea` URL is fetched as a tarball and 404s; the `.git` suffix
+   (or `#tag`) is treated as a git dependency, and `dsh plugin add` appends the
+   package to `dsh.profile.bundles` on success (`reconcile()`), so no Plugin
+   Manager step is needed on the happy path. The registry tarball is
+   world-readable anonymously.
+3. Widened the `@deepseek-ai/dsh-*` peers to accept the `0.2.1` prerelease line:
+   `^0.2.0-rc.1` does not match the running `0.2.1-rc.2`, so a fresh install
+   would have been incompatible.
+4. Added `scripts/mirror-public.mjs` + `test/mirror-public.test.mjs` (11 tests):
+   sanitized snapshot → single commit → printed (never executed) push commands,
+   plus the PR-able `sanitized/main` graft on `upstream/main` documented in
+   `.planning/mirror-plan.md`. Never push this tree to GitHub.
+5. Pre-flight for the visibility flip: no token or private key was ever
+   committed (all 459 commits scanned). History keeps a home path in
+   `TESTER-BRIEF.md` (commit `2ee4c3b`) and internal `docs/superpowers/**`;
+   accepted rather than rewriting history. `TESTER-BRIEF.md` itself was cleaned
+   to relative paths and current versions.
+6. Released `0.8.2` and made the Forgejo repository public. npmjs stays
+   untouched: the unscoped `dsh-gitea` name is unclaimed, but publishing is
+   deployment-specific and would squat a name upstream may want.
