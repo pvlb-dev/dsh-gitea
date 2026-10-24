@@ -185,6 +185,17 @@ workspace only files issues or only reviews pull requests.
   payload; an alias call still resolves even when it is not advertised.
 - Saving a different surface re-registers the tools immediately (no restart).
   `preset: none` is for workspaces where the agent should not see Gitea tools.
+- **Experimental (`experiment/dispatcher` branch only, not released):**
+  `preset: dispatcher` trades the typed surface for two meta-tools — `gitea
+  { operation, args }` plus `gitea_help { operation }`, which returns one
+  operation's JSON Schema as a tool result. The tool block is 8,973 B vs 65,159 B
+  for `full`, with a **stable** registry, so the request prefix stays cacheable.
+  Measured on five real triage tasks in 2026-10: steps 41.1k tokens/step vs 58.2k
+  for `full` (−29 %), but +30 % steps and +39 % tool calls (help round trips and
+  argument-name retries), so the **total** is only ~8 % lower and cost-weighted
+  (cache hit ≈ 0.26× fresh) ~3 % — a wash on short tasks, a modest win only past
+  ~10 steps. Do not advertise this as a token-saving mode; `preset: core` is the
+  cheaper lever. Full numbers: dsh-gitea#51.
 
 ## Verify
 
