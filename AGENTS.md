@@ -66,6 +66,7 @@ Consumers mirror this table and link here.
 | `gitea_wiki` has no create/update/delete | handler/defs/client implemented only list/get | clone the wiki repo, commit, push | #10 | fixed in `fbca62a` |
 | Plugin Auto-Updater fails on global installs | `findDshCliEntry` walked the `dsh` symlink path, so `cliEntry` was undefined | manual `dsh plugin add <tarball>` | #44 | fixed in `e43e4ca` (0.8.1) |
 | `sanitizeForPublic` rewrites `dsh-gitea` to `user-gitea` when `USER=dsh` | env user scrubbed as a bare word | `scripts/mirror-public.mjs` clears `USER` around the call; direct `gitea_mirror_public` callers still hit it | #46 | open |
+| `gitea_issue_get`/`_list` hide labels, assignee and milestone | the formatter branches never read them (`slimRecord` may strip them too) | `gitea_issue_timeline` for label events; assignee only inferable from absence | #52 | open |
 | `gitea_issue_templates` says it reads `.gitea/ISSUE_TEMPLATE/` | tool-def text is stale; the handler prefers the bundled `assets/issue-templates/` | describe the bundled pack in docs | #47 | open |
 
 Fixing a tool bug = one issue, one PR, a formatter test, and a row update in
