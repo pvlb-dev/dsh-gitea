@@ -185,6 +185,13 @@ workspace only files issues or only reviews pull requests.
   payload; an alias call still resolves even when it is not advertised.
 - Saving a different surface re-registers the tools immediately (no restart).
   `preset: none` is for workspaces where the agent should not see Gitea tools.
+- **Experimental (`experiment/dispatcher` branch only, not released):**
+  `preset: dispatcher` trades the typed surface for two meta-tools — `gitea
+  { operation, args }` plus `gitea_help { operation }`, which returns one
+  operation's JSON Schema as a tool result. Measured 8,973 B vs 65,159 B for
+  `full`, with a **stable** registry (no dynamic registration), so the request
+  prefix stays cacheable. Call `gitea_help` before an operation you have not
+  used yet.
 
 ## Verify
 
