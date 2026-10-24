@@ -6,7 +6,7 @@
 
 96 first-class tools · 133 registered names · settings page · live Git status chip
 
-[Install](#install) · [The toolset](#the-toolset) · [Configure](#configure) · [Safety](#safety-by-default) · [Development](#development)
+[Install](#install) · [Configure](#configure) · [The toolset](#the-toolset) · [Safety](#safety-by-default) · [Development](#development)
 
 </div>
 
@@ -54,6 +54,114 @@ follow-up issue without leaving the chat.
 - **Work where the repo lives.** Git worktrees for isolated branches, a
   commit graph in the UI, and an issue → branch → worktree → PR flow that
   keeps the issue and the code in sync.
+
+## Requirements
+
+- DeepSeek Harness `0.2.x` — the `0.2.0` and `0.2.1` prerelease lines are both
+  in the package's peer range.
+- Node.js 20 or newer.
+- `pnpm` that DSH can execute — Plugin Manager shells out to it for profile
+  installs.
+- `git` on the DSH host for the git install (the tarball fallback does not
+  need it).
+- A Gitea or Forgejo instance reachable over HTTPS from the DSH host, plus an
+  API token for it.
+
+## Install
+
+One command on the DSH host. This is the whole install:
+
+```bash
+dsh plugin --profile web add https://git.pvlb.dev/dsh-plugins/dsh-gitea.git
+```
+
+`web` is the profile name; use your own if you launch DSH with
+`--profile <name>`.
+
+The command adds `dsh-gitea` to the profile, installs the package from git, and
+selects its bundle — the package declares `dsh.bundle`, so the plugin row is
+enabled without a separate Plugin Manager step. There is no checkout to
+bootstrap, and `npm run dev:link` is **not** needed: that script only exists for
+`link:` installs of a working copy.
+
+The `.git` suffix is what makes pnpm treat the URL as a git repository. Without
+it the URL is fetched as a tarball and the install fails with
+`ERR_PNPM_TARBALL_HTTP_STATUS … 404`.
+
+DSH applies the new profile by itself — in the web profile HMR watches the
+bundle list; on a profile without HMR, restart the DSH service. Refresh the
+browser tab afterwards.
+
+Pin a release instead of following `master`:
+
+```bash
+dsh plugin --profile web add https://git.pvlb.dev/dsh-plugins/dsh-gitea.git#v0.8.2
+```
+
+**Fallback — published tarball.** Use this when the git URL is not reachable
+from the DSH host:
+
+```bash
+dsh plugin --profile web add https://git.pvlb.dev/api/packages/dsh-plugins/npm/dsh-gitea/-/0.8.2/dsh-gitea-0.8.2.tgz
+```
+
+The registry serves that exact tarball anonymously; the git install needs HTTPS
+access to the repository. Either way the package is self-contained —
+`lib/index.js` plus `cordis.patch.yml` — and its DSH peers come from the
+profile.
+
+## Configure
+
+Two settings are all that matter; the rest of the page can stay default.
+
+1. **Instance URL.** Open **Settings → Gitea** — or **Plugins → dsh-gitea →
+   Configure** — and set `baseUrl`, for example `https://git.example.com`.
+2. **Token.** In Forgejo/Gitea open **Settings → Applications → Generate token**
+   with the repository, issue and pull-request scopes (`read:user` covers
+   `gitea_whoami`). Then store the secret in DSH credentials under the name the
+   form expects — `GITEA_TOKEN`, unless you changed `tokenEnv`.
+
+   The store is the hidden file `~/.dsh/.credentials.yaml`; its top level is
+   `version: 1`, then `records:` and `refs:`. Add the name under `refs:`:
+
+   ```yaml
+   refs:
+     GITEA_TOKEN: <the token you just generated>
+   ```
+
+   If the file already exists, merge that one line into its `refs:` block and
+   leave the rest alone. A new file needs `version: 1` followed by the block
+   above. Other DSH key editors write to the same store, so this file is simply
+   the direct route for a name nothing else manages.
+
+The settings form takes the credential **name**, never the token — a token-shaped
+value is refused. DSH's credential store reloads this file on change and resolves
+the secret per call, so a new or rotated token applies to the next tool call
+without a restart.
+
+Optional: set `defaultOwner` and `defaultRepo` so tools that omit `owner`/`repo`
+fall back to your usual repository.
+
+## Verify
+
+- **Settings → Gitea** exists and lists fields; **Plugins** lists `dsh-gitea`
+  with a **Configure** page. `plugin_manager action=list_bundles` shows the row
+  and whether it is enabled.
+- Ask the agent to run **`gitea_whoami`**. It returns the Forgejo user behind
+  your token, which proves `baseUrl`, the credential and the token scopes in one
+  call.
+- Open a session in a git workspace: a **Git chip** appears in the session header.
+
+## Troubleshooting
+
+| Symptom | Cause | Fix |
+|:--|:--|:--|
+| `ERR_PNPM_TARBALL_HTTP_STATUS … 404`, or a JSON parse error, while adding | the URL had no `.git`, so pnpm fetched it as a tarball | append `.git`, or install the tarball URL above |
+| `spawn pnpm ENOENT`, or `dsh: pnpm was not found` | the DSH service's `PATH` has no `pnpm` | name it in the profile patch — `plugin-manager.pnpmCommand: /opt/node/bin/pnpm` (your absolute path) — then retry |
+| The row reports `failed to import` or `Cannot find package '@deepseek-ai/schemastery'` | a `link:` install of a working copy without peer resolution; a git or tarball install does not do this | run `npm run dev:link` in that checkout, then toggle the bundle off and on |
+| No **Gitea** entry under Settings | the bundle is not selected, or the browser still runs the old client bundle | check `plugin_manager action=list_bundles`, hard-refresh (`Ctrl+F5`), restart DSH if the profile has no HMR |
+| Tools answer `401`/`403` although the form shows a credential name | that credential does not exist, or the token lacks scopes | create it under `refs:` with the exact `tokenEnv` name; regenerate the token with repository, issue and pull-request scopes |
+| `403` from the Gitea page over a LAN/Tailscale hostname | a pre-0.8 build whose request guard fell back to loopback-only | upgrade to 0.8.1 or newer, then reload the Host half |
 
 ## The toolset
 
@@ -327,114 +435,6 @@ idempotent by `externalRef`, resolving label names on the way through) so a
 task board can spawn Gitea issues. `giteaEvents` is the fan-out for webhook
 events (`subscribe`, `on('event')`, `emit`, `subscriberCount`), so a second
 plugin can react to forge activity without polling.
-
-## Requirements
-
-- DeepSeek Harness `0.2.x` — the `0.2.0` and `0.2.1` prerelease lines are both
-  in the package's peer range.
-- Node.js 20 or newer.
-- `pnpm` that DSH can execute — Plugin Manager shells out to it for profile
-  installs.
-- `git` on the DSH host for the git install (the tarball fallback does not
-  need it).
-- A Gitea or Forgejo instance reachable over HTTPS from the DSH host, plus an
-  API token for it.
-
-## Install
-
-One command on the DSH host. This is the whole install:
-
-```bash
-dsh plugin --profile web add https://git.pvlb.dev/dsh-plugins/dsh-gitea.git
-```
-
-`web` is the profile name; use your own if you launch DSH with
-`--profile <name>`.
-
-The command adds `dsh-gitea` to the profile, installs the package from git, and
-selects its bundle — the package declares `dsh.bundle`, so the plugin row is
-enabled without a separate Plugin Manager step. There is no checkout to
-bootstrap, and `npm run dev:link` is **not** needed: that script only exists for
-`link:` installs of a working copy.
-
-The `.git` suffix is what makes pnpm treat the URL as a git repository. Without
-it the URL is fetched as a tarball and the install fails with
-`ERR_PNPM_TARBALL_HTTP_STATUS … 404`.
-
-DSH applies the new profile by itself — in the web profile HMR watches the
-bundle list; on a profile without HMR, restart the DSH service. Refresh the
-browser tab afterwards.
-
-Pin a release instead of following `master`:
-
-```bash
-dsh plugin --profile web add https://git.pvlb.dev/dsh-plugins/dsh-gitea.git#v0.8.2
-```
-
-**Fallback — published tarball.** Use this when the git URL is not reachable
-from the DSH host:
-
-```bash
-dsh plugin --profile web add https://git.pvlb.dev/api/packages/dsh-plugins/npm/dsh-gitea/-/0.8.2/dsh-gitea-0.8.2.tgz
-```
-
-The registry serves that exact tarball anonymously; the git install needs HTTPS
-access to the repository. Either way the package is self-contained —
-`lib/index.js` plus `cordis.patch.yml` — and its DSH peers come from the
-profile.
-
-## Configure
-
-Two settings are all that matter; the rest of the page can stay default.
-
-1. **Instance URL.** Open **Settings → Gitea** — or **Plugins → dsh-gitea →
-   Configure** — and set `baseUrl`, for example `https://git.example.com`.
-2. **Token.** In Forgejo/Gitea open **Settings → Applications → Generate token**
-   with the repository, issue and pull-request scopes (`read:user` covers
-   `gitea_whoami`). Then store the secret in DSH credentials under the name the
-   form expects — `GITEA_TOKEN`, unless you changed `tokenEnv`.
-
-   The store is the hidden file `~/.dsh/.credentials.yaml`; its top level is
-   `version: 1`, then `records:` and `refs:`. Add the name under `refs:`:
-
-   ```yaml
-   refs:
-     GITEA_TOKEN: <the token you just generated>
-   ```
-
-   If the file already exists, merge that one line into its `refs:` block and
-   leave the rest alone. A new file needs `version: 1` followed by the block
-   above. Other DSH key editors write to the same store, so this file is simply
-   the direct route for a name nothing else manages.
-
-The settings form takes the credential **name**, never the token — a token-shaped
-value is refused. DSH's credential store reloads this file on change and resolves
-the secret per call, so a new or rotated token applies to the next tool call
-without a restart.
-
-Optional: set `defaultOwner` and `defaultRepo` so tools that omit `owner`/`repo`
-fall back to your usual repository.
-
-## Verify
-
-- **Settings → Gitea** exists and lists fields; **Plugins** lists `dsh-gitea`
-  with a **Configure** page. `plugin_manager action=list_bundles` shows the row
-  and whether it is enabled.
-- Ask the agent to run **`gitea_whoami`**. It returns the Forgejo user behind
-  your token, which proves `baseUrl`, the credential and the token scopes in one
-  call.
-- Open a session in a git workspace: a **Git chip** appears in the session header.
-
-## Troubleshooting
-
-| Symptom | Cause | Fix |
-|:--|:--|:--|
-| `ERR_PNPM_TARBALL_HTTP_STATUS … 404`, or a JSON parse error, while adding | the URL had no `.git`, so pnpm fetched it as a tarball | append `.git`, or install the tarball URL above |
-| `spawn pnpm ENOENT`, or `dsh: pnpm was not found` | the DSH service's `PATH` has no `pnpm` | name it in the profile patch — `plugin-manager.pnpmCommand: /opt/node/bin/pnpm` (your absolute path) — then retry |
-| The row reports `failed to import` or `Cannot find package '@deepseek-ai/schemastery'` | a `link:` install of a working copy without peer resolution; a git or tarball install does not do this | run `npm run dev:link` in that checkout, then toggle the bundle off and on |
-| No **Gitea** entry under Settings | the bundle is not selected, or the browser still runs the old client bundle | check `plugin_manager action=list_bundles`, hard-refresh (`Ctrl+F5`), restart DSH if the profile has no HMR |
-| Tools answer `401`/`403` although the form shows a credential name | that credential does not exist, or the token lacks scopes | create it under `refs:` with the exact `tokenEnv` name; regenerate the token with repository, issue and pull-request scopes |
-| `403` from the Gitea page over a LAN/Tailscale hostname | a pre-0.8 build whose request guard fell back to loopback-only | upgrade to 0.8.1 or newer, then reload the Host half |
 
 ## Safety by default
 
