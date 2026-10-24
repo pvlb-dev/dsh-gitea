@@ -140,6 +140,7 @@ test('wiki list shows the canonical pageName slug (#10)', () => {
 
 function fakeClient(overrides = {}) {
   return {
+    async getWikiPage() { return { ok: true, data: { title: 'Home' } } },
     async createWikiPage() { return { ok: true, data: { title: 'Home', html_url: 'https://git.example/acme/docs/wiki/Home' } } },
     async updateWikiPage() { return { ok: true, data: { title: 'Home', html_url: 'https://git.example/acme/docs/wiki/Home' } } },
     async deleteWikiPage() { return { ok: true } },
@@ -185,4 +186,60 @@ test('wiki writes surface API failures instead of succeeding silently (#10)', as
   const res = await callWiki({ action: 'create', title: 'Home', content: 'x' }, failing)
   assert.equal(res.ok, false)
   assert.equal(res.error, 'denied')
+})
+
+// #55 — Forgejo renames a wiki page to "unnamed" when the PATCH carries no
+// title, so an update that is not a rename must send the current title back.
+test('wiki update keeps the current title when none is given (#55)', async () => {
+  const seen = []
+  const client = fakeClient({
+    async getWikiPage() { return { ok: true, data: { title: 'Smoke Test Drift' } } },
+    async updateWikiPage(owner, repo, pageName, body) {
+      seen.push(body)
+      return { ok: true, data: { title: body.title } }
+    },
+  })
+  const res = await callWiki({ action: 'update', pageName: 'Smoke-Test-Drift', content: 'new body' }, client)
+  assert.equal(res.ok, true)
+  assert.equal(seen.length, 1)
+  assert.equal(seen[0].title, 'Smoke Test Drift', 'the PATCH body always carries a non-empty title')
+  assert.equal(text('gitea_wiki', res), 'Wiki page updated: Smoke Test Drift')
+})
+
+test('wiki update still renames when a title is given (#55)', async () => {
+  const seen = []
+  const client = fakeClient({
+    async getWikiPage() { throw new Error('should not be read when a title is given') },
+    async updateWikiPage(owner, repo, pageName, body) {
+      seen.push(body)
+      return { ok: true, data: { title: body.title } }
+    },
+  })
+  const res = await callWiki({ action: 'update', pageName: 'Old-Name', title: 'New Name', content: 'x' }, client)
+  assert.equal(res.ok, true)
+  assert.equal(seen[0].title, 'New Name')
+})
+
+test('wiki update falls back to pageName when the current title is unreadable (#55)', async () => {
+  const seen = []
+  const client = fakeClient({
+    async getWikiPage() { return { ok: false, status: 404, error: 'not found' } },
+    async updateWikiPage(owner, repo, pageName, body) {
+      seen.push(body)
+      return { ok: true, data: { title: body.title } }
+    },
+  })
+  const res = await callWiki({ action: 'update', pageName: 'Plain-Name', content: 'x' }, client)
+  assert.equal(res.ok, true)
+  assert.equal(seen[0].title, 'Plain-Name')
+})
+
+test('wiki update on a missing page still surfaces the failure (#55)', async () => {
+  const client = fakeClient({
+    async getWikiPage() { return { ok: false, status: 404, error: 'not found' } },
+    async updateWikiPage() { return { ok: false, status: 404, error: 'wiki page not found' } },
+  })
+  const res = await callWiki({ action: 'update', pageName: 'Ghost', content: 'x' }, client)
+  assert.equal(res.ok, false)
+  assert.match(text('gitea_wiki', res), /not found/)
 })

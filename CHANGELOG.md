@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.8.7] - 2026-10-25
+
+### A selectable dispatcher, and three tool defects
+
+- **Settings: `dispatcher` is now offered in the preset dropdown.** 0.8.6
+  accepted `preset: dispatcher` in the Host schema, but the settings select
+  still listed only the pre-0.8.6 presets, so the mode was unreachable from the
+  UI. The option list is now a single named constant and
+  `test/selection.test.mjs` compares it with the Host's `PRESET_NAMES`, so the
+  two cannot drift again.
+- **#55 — `gitea_wiki` update keeps the page title.** Forgejo renames a page to
+  `unnamed` when the PATCH carries no title, so an update that is not meant to
+  rename now reads the current title and sends it back (falling back to
+  `pageName` when the read fails). Live-checked on a scratch page: update
+  without `title` kept both title and slug; the probe page was deleted again.
+- **#56 — `gitea_flavor` renders in prose.** It fell through to the generic
+  formatter and printed `Unrecognised response` plus clipped JSON; it now prints
+  `Flavor: forgejo · version …` and one `- note` line per note, or an explicit
+  "could not determine" sentence.
+- **#57 — Forgejo is no longer misdetected as Gitea.** Forgejo advertises a
+  Gitea-compatible version string (`17.0.0+gitea-1.22.0`), so a version-only
+  heuristic answered `gitea` on every Forgejo. A `+gitea-<ver>` suffix is now
+  treated as ambiguous and confirmed from the instance web UI `<title>`, falling
+  back to `unknown` (never a confident `gitea`) when the probe fails. Live: this
+  instance reports `forgejo`.
+
 ## [0.8.6] - 2026-10-25
 
 ### A dispatcher surface, and issues that show their metadata

@@ -161,6 +161,17 @@ test('host entry wires the tool surface to the config schema', () => {
   assert.match(routes, /toolSurface: typeof options\.toolSurface === 'function' \? options\.toolSurface\(\) : undefined/)
 })
 
+test('the settings dropdown offers exactly the presets the Host accepts (#51)', () => {
+  const match = client.match(/const PRESET_OPTIONS = \[([^\]]+)\]/)
+  assert.ok(match, 'lib/client.js declares PRESET_OPTIONS')
+  const options = match[1]
+    .split(',')
+    .map((part) => part.trim().replace(/^['"]|['"]$/g, ''))
+    .filter(Boolean)
+  assert.deepEqual([...options].sort(), [...PRESET_NAMES].sort(), 'UI list must match PRESET_NAMES')
+  assert.ok(options.includes('dispatcher'), 'dispatcher is selectable in the settings form')
+})
+
 test('settings form exposes the surface in both locales', () => {
   for (const key of [
     'sectionTools', 'preset', 'presetHint', 'tools', 'toolsHint',
