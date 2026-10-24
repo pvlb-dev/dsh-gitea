@@ -67,6 +67,9 @@ Consumers mirror this table and link here.
 | Plugin Auto-Updater fails on global installs | `findDshCliEntry` walked the `dsh` symlink path, so `cliEntry` was undefined | manual `dsh plugin add <tarball>` | #44 | fixed in `e43e4ca` (0.8.1) |
 | `sanitizeForPublic` rewrites `dsh-gitea` to `user-gitea` when `USER=dsh` | env user scrubbed as a bare word | `scripts/mirror-public.mjs` clears `USER` around the call; direct `gitea_mirror_public` callers still hit it | #46 | open |
 | `gitea_issue_get`/`_list` hide labels, assignee and milestone | the formatter branches never read them | none needed; both now render the metadata | #52 | fixed in `4848dd7` (0.8.6) |
+| `gitea_wiki update` renames the page to `unnamed` | Forgejo applies its empty-title path when the PATCH has no title; the handler passed `title: undefined` | read the current page title back | #55 | fixed in 0.8.7 |
+| `gitea_flavor` prints `Unrecognised response` + clipped JSON | no formatter branch for the tool | none | #56 | fixed in 0.8.7 |
+| `gitea_flavor` says `gitea` on a Forgejo instance | version-only heuristic; Forgejo advertises `17.0.0+gitea-1.22.0` | none; detection now probes the web UI title | #57 | fixed in 0.8.7 |
 | `gitea_issue_templates` says it reads `.gitea/ISSUE_TEMPLATE/` | tool-def text is stale; the handler prefers the bundled `assets/issue-templates/` | describe the bundled pack in docs | #47 | open |
 
 Fixing a tool bug = one issue, one PR, a formatter test, and a row update in
@@ -114,7 +117,7 @@ The tracker holds the repros and acceptance notes; this table is the index.
   `@goodandready/dsh-gitea`; the old scoped package stays in the registry for
   pinned installs). The bundle row id and Settings namespace stay `dsh-gitea`, so
   the `plugins.row.config` key is now `dsh-gitea#dsh-gitea`.
-  Fork version: `0.8.6` (see "Versioning and tags"). Runtime peer range:
+  Fork version: `0.8.7` (see "Versioning and tags"). Runtime peer range:
   `>=0.1.7-rc.2 <0.2.0-0 || >=0.2.0-rc.1 <0.3.0-0 || >=0.2.1-0 <0.3.0-0`
   (`peerDependencies`) — widened on 2026-10-24 so the running `0.2.1-rc.2`
   Harness satisfies it, because `^0.2.0-rc.1` excludes prereleases of a
@@ -198,10 +201,11 @@ The tracker holds the repros and acceptance notes; this table is the index.
 
 ### Versioning and tags
 
-- Fork version: `0.8.6` (dispatcher preset + issue metadata; 0.8.5 was
+- Fork version: `0.8.7` (dropdown fix + flavor/wiki defects; 0.8.6 was
+  dispatcher preset + issue metadata; 0.8.5 was
   tool-surface presets + opt-in aliases, 0.8.4 staged npmjs publishing, 0.8.3
   publish config, 0.8.2 README + peer-range). Earlier builds used
-  `<upstream base>-dsh.<n>`; hotfixes can use `0.8.6-dsh.<n>` if needed.
+  `<upstream base>-dsh.<n>`; hotfixes can use `0.8.7-dsh.<n>` if needed.
 - Tag every state that is live on the server as `v<version>` (for example
   `v0.8.1`). Rollback = `git checkout <tag>`, toggle the bundle off/on,
   hard-refresh.
@@ -1012,3 +1016,26 @@ The operator shipped both follow-ups from the #51 spike in one release.
    leak scan clean, syntax clean.
 4. Released `0.8.6`; #51 and #52 close with the release reference. The
    `experiment/dispatcher` branch stays for history only.
+
+## Session log — preset dropdown and three tool defects (0.8.7, 2026-10-25)
+
+The operator spotted the gap from the settings screenshot: 0.8.6 shipped
+`preset: dispatcher` in the Host schema but the settings dropdown still listed
+only the old presets, because `lib/client.js` had its own hardcoded array. While
+fixing it, three defects filed by the t14btw agent were fixed in the same
+release.
+
+1. Preset dropdown: `PRESET_OPTIONS` is now one named list next to the locale
+   dictionaries, and `test/selection.test.mjs` asserts it equals the Host's
+   `PRESET_NAMES` — the drift class is closed, not just this instance of it.
+2. #55: the wiki `update` branch reads the current page title when `title` is
+   blank and sends it back, because Forgejo renames to `unnamed` otherwise.
+   Live probe on `ml-lab/tardits` (create → update without title → list showed
+   `Probe 55 Page (pageName: Probe-55-Page)` → delete).
+3. #56: added the missing `gitea_flavor` formatter branch; live output is now
+   `Flavor: forgejo · version 17.0.0+gitea-1.22.0` plus the notes.
+4. #57: a `+gitea-<ver>` version is ambiguous, so detection probes the web UI
+   `<title>` (Forgejo vs Gitea), records `detectedFrom`, and answers `unknown`
+   with a reason if the probe fails. Live: this instance now reports `forgejo`.
+5. `npm run check`: 195 tests (13 new across `test/flavor.test.mjs` and the wiki
+   suite), leak scan clean, syntax clean.
