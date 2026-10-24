@@ -170,11 +170,11 @@ test('getStatus compares the manifest against the registry packument', async () 
   clearLatestCache()
   await withMockFetch(async () => ({
     ok: true,
-    json: async () => ({ 'dist-tags': { latest: '0.7.40-dsh.99' }, versions: {} }),
+    json: async () => ({ 'dist-tags': { latest: '99.99.99' }, versions: {} }),
   }), async () => {
     const status = await getStatus({ packageName: PACKAGE, registry: REGISTRY, manifestUrl: MANIFEST }, { profileName: 'web' })
     assert.equal(status.registry, REGISTRY)
-    assert.equal(status.latestVersion, '0.7.40-dsh.99')
+    assert.equal(status.latestVersion, '99.99.99')
     assert.equal(status.latestCheckFailed, false)
     assert.equal(status.updateAvailable, true)
   })
