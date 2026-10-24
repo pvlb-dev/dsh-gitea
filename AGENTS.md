@@ -64,6 +64,7 @@ Consumers mirror this table and link here.
 | `gitea_label_bootstrap` uses the upstream taxonomy | `label-bootstrap.js` | create house labels by hand | #8 | fixed in `178a99f` (house default, upstream opt-in, truthful dry run) |
 | `gitea_wiki list` errors on an empty wiki | `listWikiPages` surfaced the API's 404 | none | #9 | fixed in `913013a` |
 | `gitea_wiki` has no create/update/delete | handler/defs/client implemented only list/get | clone the wiki repo, commit, push | #10 | fixed in `fbca62a` |
+| Plugin Auto-Updater fails on global installs | `findDshCliEntry` walked the `dsh` symlink path, so `cliEntry` was undefined | manual `dsh plugin add <tarball>` | #44 | fixed in `e43e4ca` (0.8.1) |
 
 Fixing a tool bug = one issue, one PR, a formatter test, and a row update in
 this table — same sitting.
@@ -106,7 +107,7 @@ The tracker holds the repros and acceptance notes; this table is the index.
   `@goodandready/dsh-gitea`; the old scoped package stays in the registry for
   pinned installs). The bundle row id and Settings namespace stay `dsh-gitea`, so
   the `plugins.row.config` key is now `dsh-gitea#dsh-gitea`.
-  Fork version: `0.8.0` (see "Versioning and tags"). Runtime peer line:
+  Fork version: `0.8.1` (see "Versioning and tags"). Runtime peer line:
   DSH `0.1.7-rc.2` / `0.2.0-rc.x` (`peerDependencies`).
 - Remotes:
   - `origin` = `ssh://git@git.pvlb.dev/dsh-plugins/dsh-gitea.git` — our private
@@ -180,10 +181,10 @@ The tracker holds the repros and acceptance notes; this table is the index.
 
 ### Versioning and tags
 
-- Fork version: `0.8.0` (milestone release after the QA sweep). Earlier builds
-  used `<upstream base>-dsh.<n>`; hotfixes can use `0.8.0-dsh.<n>` if needed.
+- Fork version: `0.8.1` (0.8.0 milestone + the updater hotfix). Earlier builds
+  used `<upstream base>-dsh.<n>`; hotfixes can use `0.8.1-dsh.<n>` if needed.
 - Tag every state that is live on the server as `v<version>` (for example
-  `v0.8.0`). Rollback = `git checkout <tag>`, toggle the bundle off/on,
+  `v0.8.1`). Rollback = `git checkout <tag>`, toggle the bundle off/on,
   hard-refresh.
 - Add a fork entry to `CHANGELOG.md` per release; leave upstream entries intact.
 
@@ -464,7 +465,7 @@ regression gate for edits to `lib/client.js`.
 | Save appears successful but is lost on restart | write bypassed the Settings service | persist via `servedScope.update`; check `writable` |
 | Settings page has no Plugin Auto-Updater panel | `updates: false` — the fork default in this profile | expected; enabling it lets the Forgejo registry package replace the `link:` checkout |
 | `/api/dsh-gitea/update` answers 403 `code: "disabled"` | Config `updates: false` | expected on this fork; never remove the gate |
-| A `link:` checkout was replaced by the published package | the updater (or a manual `dsh plugin add`) installed the registry tarball | `git checkout v0.8.0`, toggle the bundle off/on, keep `updates: false` for dev |
+| A `link:` checkout was replaced by the published package | the updater (or a manual `dsh plugin add`) installed the registry tarball | `git checkout v0.8.1`, toggle the bundle off/on, keep `updates: false` for dev |
 | Plugin update fails with `Plugin update failed: …` | `dsh plugin` cannot find pnpm on the DSH unit's PATH, or pnpm itself failed | check `<profile>/.plugin-manager/logs/operation-*/pnpm.log`; 0.7.40-dsh.6+ prepends the Node bin dir and `PNPM_HOME` to the updater PATH |
 | pnpm 404s on `dsh-cost-meter`/other npmjs packages during add/remove | the default npm registry was set to the Forgejo registry | restore `registry=https://registry.npmjs.org/` in `~/.npmrc`; install `dsh-gitea` from its tarball URL (0.7.40-dsh.7 leaves the default registry alone) |
 | Tools resolve wrong owner/repo | no `defaultOwner`/`defaultRepo` and no git origin in the session cwd | configure defaults or pass owner/repo |
@@ -706,3 +707,20 @@ implementations; the operator asked to fix all of them before the 0.8 bump.
 6. Released `0.8.0`: milestone version, `[0.8.0]` changelog, AGENTS/README
    version updates, tag `v0.8.0` → publish workflow. Test suite 141, leak scan
    and syntax clean.
+
+## Session log — updater symlink fix and 0.8.1 (2026-10-24)
+
+1. A local operator's 0.7.40-dsh.7 panel saw 0.8.0 but the install failed with
+   "Plugin update failed; see server logs." and no `operation-*` dir was created.
+2. #44 root cause: `findDshCliEntry()` used `resolve(process.argv[1])` without
+   following symlinks. Global installs run
+   `/usr/local/bin/dsh -> …/@deepseek-ai/dsh/lib/bin.js`, so the walk found no
+   manifest, `cliEntry` was undefined, and `installExact` failed before spawning
+   `dsh plugin`. The status already returned `canAutoUpdate: false`, but the UI
+   ignored it.
+3. `e43e4ca` (PR #45): realpath the entry and candidate bin; export
+   `findDshCliEntry` for tests; missing-CLI error includes the manual
+   `dsh plugin --profile <name> add <tarball>` command; the UI hides the Update
+   button and shows a manual hint when `canAutoUpdate` is false. Tests 143/143.
+4. Released `0.8.1`. An installed 0.7.40-dsh.7 updater cannot fix itself, so
+   0.8.1 needs one manual tarball bootstrap; subsequent UI updates work.

@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.8.1] - 2026-10-24
+
+### Fix one-click updates on global installs
+- The updater now resolves the `dsh` entry through its symlink chain
+  (`/usr/local/bin/dsh → …/lib/bin.js`) before looking for the DSH manifest.
+  Previously `process.argv[1]` was walked as a literal path, `cliEntry` was
+  `undefined`, and the update failed before `dsh plugin` ran (#44, `e43e4ca`).
+- The settings panel honours `canAutoUpdate`: when the CLI cannot be located it
+  hides the Update button and shows a manual-install hint instead of offering an
+  action that cannot work.
+- The missing-CLI error now includes the exact command
+  (`dsh plugin --profile <name> add <tarball>`).
+- Regression tests cover symlinked and direct CLI entries.
+
 ## [0.8.0] - 2026-10-24
 
 ### QA sweep: 20 tool defects found and fixed (#19–#38)
