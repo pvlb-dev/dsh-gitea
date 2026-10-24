@@ -95,9 +95,8 @@ The tracker holds the repros and acceptance notes; this table is the index.
   [`GooDAnDReaDY/dsh-gitea`](https://github.com/GooDAnDReaDY/dsh-gitea) (MIT).
   `origin` is our Forgejo, `upstream` is the GitHub project. The policy is
   **watch upstream, never develop against it** — see "Fork status and upstream
-  sync" below. The Forgejo repository is public (since 2026-10-24); a sanitized
-  snapshot can be mirrored to a GitHub fork with
-  `scripts/mirror-public.mjs`, never by pushing this history.
+  sync" below. The Forgejo repository is public and mirrors to GitHub as a
+  push mirror; both registries publish the same tag.
 - Upstream's public GitHub tree is the **sanitized publish output of a private
   development repo**: every upstream commit is `chore(publish): sanitized tree
   from <sha>`. `lib/` is what ships; there is no `src/` and no client build step
@@ -112,7 +111,7 @@ The tracker holds the repros and acceptance notes; this table is the index.
   `@goodandready/dsh-gitea`; the old scoped package stays in the registry for
   pinned installs). The bundle row id and Settings namespace stay `dsh-gitea`, so
   the `plugins.row.config` key is now `dsh-gitea#dsh-gitea`.
-  Fork version: `0.8.2` (see "Versioning and tags"). Runtime peer range:
+  Fork version: `0.8.3` (see "Versioning and tags"). Runtime peer range:
   `>=0.1.7-rc.2 <0.2.0-0 || >=0.2.0-rc.1 <0.3.0-0 || >=0.2.1-0 <0.3.0-0`
   (`peerDependencies`) — widened on 2026-10-24 so the running `0.2.1-rc.2`
   Harness satisfies it, because `^0.2.0-rc.1` excludes prereleases of a
@@ -179,24 +178,26 @@ The tracker holds the repros and acceptance notes; this table is the index.
   Conflict hotspots: `package.json` (version line), the top of `CHANGELOG.md`,
   and `lib/client.js` (generated bundle — our largest diff). Keep our functional
   patch, re-run the checks, toggle the bundle off/on, hard-refresh the browser.
-- Never push this tree or its history to GitHub: it carries internal hostnames
-  in `AGENTS.md` and a fork-specific README. The supported route to a public
-  GitHub presence is a **sanitized snapshot**: `node scripts/mirror-public.mjs
-  --out /tmp/dsh-gitea-mirror --remote <github-url>` writes a clean tree, runs
-  the leak rules over it, commits once on `main` and prints the push commands
-  for a human to run — the script never pushes and never touches this working
-  tree. If we upstream a single fix instead, isolate it into a minimal branch or
-  a patch file (`lib/http-guard.js` is self-contained) and keep
-  internal-context files out of it.
-- Publish only to our Forgejo npm registry (via CI); never to the public npm
-  registry. This deployment's dev checkout installs by local path (`link:`),
-  and the published package is what the updater consumes.
+- The GitHub presence is a **push mirror of this tree**, not a contribution
+  branch: the operator mirrors `GooDAnDReaDY/dsh-gitea` on GitHub (branch
+  `main`) and force-pushes our `master` over it from the Forgejo UI, so the
+  mirror ends up with `main` (upstream) and `master` (ours). Nothing is
+  sanitized: the repo is public here and `AGENTS.md` is deliberately part of
+  the value (an agent cloning the repo reads it first). Do not add GitHub as a
+  remote in this checkout; upstream stays a fetch-only remote and is re-synced
+  by rebase every month or two. `scripts/mirror-public.mjs` remains the
+  alternative if a sanitized snapshot is ever wanted.
+- Two registries publish the same tag: `publish.yml` to our Forgejo registry
+  (`NPM_TOKEN`) and `publish-npmjs.yml` to npmjs (`NPMJS_TOKEN`, skipped when
+  absent). This deployment's dev checkout installs by local path (`link:`), and
+  the published package (Forgejo tarball or npmjs) is what the updater
+  consumes.
 
 ### Versioning and tags
 
-- Fork version: `0.8.2` (README/public-install + peer-range patch on top of
-  0.8.1). Earlier builds used `<upstream base>-dsh.<n>`; hotfixes can use
-  `0.8.2-dsh.<n>` if needed.
+- Fork version: `0.8.3` (first public npmjs release; 0.8.2 was README +
+  peer-range). Earlier builds used `<upstream base>-dsh.<n>`; hotfixes can use
+  `0.8.3-dsh.<n>` if needed.
 - Tag every state that is live on the server as `v<version>` (for example
   `v0.8.1`). Rollback = `git checkout <tag>`, toggle the bundle off/on,
   hard-refresh.
@@ -213,10 +214,14 @@ The tracker holds the repros and acceptance notes; this table is the index.
   `v<package.json version>`, and publishes to
   `https://git.pvlb.dev/api/packages/dsh-plugins/npm/`. It skips a version that
   already exists. The repo secret `NPM_TOKEN` holds a Forgejo token with the
-  `write:package` scope; a tag push is the only way a package is published.
-- The package is `dsh-gitea` (the upstream `@goodandready/dsh-gitea` name is
-  retired here) and is published only to our private Forgejo registry — never to
-  npmjs.
+  `write:package` scope.
+- `.forgejo/workflows/publish-npmjs.yml` runs on the same tag, re-runs the same
+  checks and publishes the same tarball to the public npm registry. It uses the
+  repo secret `NPMJS_TOKEN` (the token from the `dsh-resend-mcp` setup) and
+  skips silently when the secret is absent. 0.8.3 claims the unscoped public
+  name `dsh-gitea`; the upstream `@goodandready/dsh-gitea` name is retired.
+- The package is public: no `private` field, `publishConfig.access: public`,
+  `files` = `lib/`, `assets/`, `cordis.patch.yml`, `README.md`, `LICENSE`.
 - Release ritual: bump `package.json` + `CHANGELOG.md`, commit, push `master`,
   then `git tag -a v<version> -m "…" && git push origin v<version>`.
 - Install a published build from its tarball (dependencies resolve from npmjs):
@@ -254,9 +259,10 @@ The tracker holds the repros and acceptance notes; this table is the index.
    `/api/dsh-gitea/update` (`isEnabled` in `lib/index.js`); this profile keeps it
    `false` for the `link:` dev checkout. Enabling it lets the next update replace
    that checkout with the published package — deliberate, not an accident.
-7. **Fork identity:** keep the package name and bundle row id, publish only to
-   our Forgejo npm registry through CI (never to the public npm registry), and
-   do not add GitHub as a push remote.
+7. **Fork identity:** keep the package name and bundle row id. A tag publishes
+   to both registries (Forgejo via `NPM_TOKEN`, npmjs via `NPMJS_TOKEN`); the
+   npmjs name `dsh-gitea` is ours. Do not add GitHub as a push remote — the
+   GitHub presence is a Forgejo push mirror or a manual force push.
 
 ## Repository map
 
@@ -273,7 +279,7 @@ The tracker holds the repros and acceptance notes; this table is the index.
 | `lib/settings`-related | Settings live in `lib/index.js` (`Config`, `readServedConfig`, `servedScope`); UI in `lib/client.js` |
 | `assets/issue-templates/` | Issue form templates the plugin can install |
 | `cordis.patch.yml` | Bundle patch: inserts the `dsh-gitea` row with empty config |
-| `.forgejo/workflows/` | `ci.yml` (push checks) and `publish.yml` (tag → Forgejo npm registry) |
+| `.forgejo/workflows/` | `ci.yml` (push checks), `publish.yml` (tag → Forgejo registry), `publish-npmjs.yml` (tag → npmjs) |
 | `scripts/dev-link-dsh.mjs` | Links DSH peer packages into this checkout for `link:` installs |
 | `scripts/leak-scan.mjs` | Fails on private paths/scopes/tokens/Cyrillic in the publishable tree |
 | `scripts/mirror-public.mjs` | Builds a sanitized, push-ready snapshot for a GitHub fork; never pushes |
@@ -772,3 +778,24 @@ what it enables, one-line install) instead of a fork runbook.
 6. Released `0.8.2` and made the Forgejo repository public. npmjs stays
    untouched: the unscoped `dsh-gitea` name is unclaimed, but publishing is
    deployment-specific and would squat a name upstream may want.
+
+## Session log — public npmjs release (0.8.3, 2026-10-24)
+
+The operator asked to claim the unscoped `dsh-gitea` name on npmjs and publish a
+first public version, keeping the Forgejo registry as the second target.
+
+1. `package.json` is public: `private` removed, `publishConfig.access: public`,
+   `engines.node: ">=20"`, version `0.8.3`. `files` is unchanged, so the npm
+   tarball is `lib/`, `assets/`, `cordis.patch.yml`, `README.md`, `LICENSE`.
+2. Added `.forgejo/workflows/publish-npmjs.yml` (same tag guard and `npm run
+   check` as `publish.yml`) publishing to npmjs with `NPMJS_TOKEN`; it skips
+   silently while the secret is absent. `publish.yml` no longer deletes
+   `private`, since the package is public now.
+3. The README install section leads with `dsh plugin --profile web add
+   dsh-gitea`; the git URL, a tag pin and the Forgejo tarball stay as fallbacks.
+4. Removed `TESTER-BRIEF.md` (the tool QA sweep it described is finished;
+   history keeps it, which is fine for a public repo).
+5. Mirroring decision: no sanitized snapshot. The GitHub presence is a push
+   mirror of `master` over the upstream fork, so GitHub shows upstream `main`
+   and our `master`; upstream stays fetch-only and is rebased every month or
+   two. `scripts/mirror-public.mjs` stays available but is not the chosen path.

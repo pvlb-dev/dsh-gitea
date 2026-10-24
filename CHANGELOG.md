@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.8.3] - 2026-10-24
+
+### Public on npmjs
+
+- The package is public now: `private` is gone, `publishConfig.access` is
+  `public` and `engines.node` is `>=20`. `.forgejo/workflows/publish-npmjs.yml`
+  publishes the same `v*` tag artifact to the public npm registry with the
+  `NPMJS_TOKEN` secret and skips silently while the secret is absent; the
+  Forgejo `publish.yml` keeps publishing to our own registry.
+- `0.8.3` is the first public release and claims the unscoped `dsh-gitea`
+  name on npmjs.
+- The README install section now leads with `dsh plugin --profile web add
+  dsh-gitea`; the git URL and the Forgejo tarball are the fallbacks.
+- Removed the retired `TESTER-BRIEF.md` — the QA sweep it described is done.
+
 ## [0.8.2] - 2026-10-24
 
 ### Public README, a one-line install and the mirror path

@@ -1,7 +1,6 @@
 {
   "name": "dsh-gitea",
-  "version": "0.8.2",
-  "private": true,
+  "version": "0.8.3",
   "description": "Gitea/Forgejo integration for DeepSeek Harness: 96 first-class tools for issues, pull requests, reviews, releases, CI, packages, wiki and worktrees (133 registered names with compatibility aliases), plus a settings UI and a live Git status chip.",
   "type": "module",
   "main": "lib/index.js",
@@ -42,6 +41,12 @@
     "url": "https://git.pvlb.dev/dsh-plugins/dsh-gitea/issues"
   },
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  },
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
