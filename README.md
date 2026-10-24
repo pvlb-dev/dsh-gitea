@@ -4,6 +4,8 @@
 
 **Gitea/Forgejo, driven from your DeepSeek Harness session.**
 
+Main repo on [pvlb.dev/dsh-plugins/dsh-gitea](https://git.pvlb.dev/dsh-plugins/dsh-gitea/)
+
 96 first-class tools · 133 registered names · settings page · live Git status chip
 
 [Install](#install) · [Configure](#configure) · [The toolset](#the-toolset) · [Safety](#safety-by-default) · [Development](#development) · [npm](https://www.npmjs.com/package/dsh-gitea)
