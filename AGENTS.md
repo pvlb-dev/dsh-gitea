@@ -947,3 +947,9 @@ experiments; the split was by risk, not by "feature vs experiment".
    never published) and the tag were deleted, the fix was committed on `master`,
    and `v0.8.5` was re-tagged on the fixed commit. Lesson: anything that imports
    `lib/index.js` is a profile-only test.
+8. After the re-tag all four `v0.8.5` runs are green: `0.8.5` is in the Forgejo
+   registry (the tarball contains `lib/selection.js`), the release page carries
+   its `dsh-gitea-0.8.5.tgz` asset, and npmjs has 0.8.5 **staged** — its
+   `latest` dist-tag stays 0.8.4 until a maintainer approves the stage with 2FA.
+   The live session then advertised the 96 canonical names with no alias, i.e.
+   the HMR reload applied the new default.
