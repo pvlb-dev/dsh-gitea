@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.8.6] - 2026-10-25
+
+### A dispatcher surface, and issues that show their metadata
+
+- **#52 (fix) — issues now render labels, assignee and milestone.**
+  `gitea_issue_get` gained a metadata line (`labels: … · assignee: @me ·
+  milestone: 0.9`, omitted entirely when empty) and `gitea_issue_list` /
+  `gitea_issue_search` rows carry `[type/task, needs-operator · @dsh]`. Before
+  this, triage had to call `gitea_issue_timeline` to learn the labels — measured
+  on 5/5 independent triage runs. The fields were already in `RECORD_KEYS`; only
+  the formatters dropped them (`4848dd7`, PR #53).
+- **#51 (feat) — `preset: dispatcher`**, an opt-in two-tool surface:
+  `gitea { operation, args }` plus `gitea_help { operation }`, which returns one
+  operation's JSON Schema as a tool result. 8,973 B instead of 65,159 B, stable
+  registry (no dynamic registration, so the request prefix stays cacheable), and
+  every operation still reachable. Arguments are validated server-side and an
+  unknown name comes back with the accepted ones. Measured on five real triage
+  tasks: 41.1k tokens/step vs 58.2k (−29 %), but +30 % steps, so ~8 % lower in
+  total — a wash on short tasks, a modest win past ~10 steps. **`full` stays the
+  default**; this is not advertised as a token-saving mode (`0d4cdd8`, PR #54).
+- **#50** (lazy tool discovery) closed as won't-do: additive history and cache
+  invalidation make it strictly worse than the dispatcher.
+
 ## [0.8.5] - 2026-10-24
 
 ### Smaller tool payload and a switchable tool surface

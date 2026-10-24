@@ -160,7 +160,7 @@ workspace only files issues or only reviews pull requests.
 ```yaml
 - id: dsh-gitea
   config:
-    preset: core        # core | issues | prs | repos | ops | full | none | custom
+    preset: core        # core | issues | prs | repos | ops | dispatcher | full | none | custom
     tools: []           # glob allowlist; non-empty replaces the preset
     excludeTools: []    # patterns removed after the preset/allowlist
     legacyAliases: false
@@ -174,6 +174,7 @@ workspace only files issues or only reviews pull requests.
 | `prs` | 27 | 17,480 | ~4.7k |
 | `repos` | 17 | 12,026 | ~3.3k |
 | `ops` | 30 | 20,067 | ~5.4k |
+| `dispatcher` | 2 | 8,973 | ~2.4k |
 | `none` | 0 | 0 | 0 |
 | `full` + `legacyAliases` | 133 | 107,157 | ~29k |
 
@@ -185,17 +186,17 @@ workspace only files issues or only reviews pull requests.
   payload; an alias call still resolves even when it is not advertised.
 - Saving a different surface re-registers the tools immediately (no restart).
   `preset: none` is for workspaces where the agent should not see Gitea tools.
-- **Experimental (`experiment/dispatcher` branch only, not released):**
-  `preset: dispatcher` trades the typed surface for two meta-tools — `gitea
-  { operation, args }` plus `gitea_help { operation }`, which returns one
-  operation's JSON Schema as a tool result. The tool block is 8,973 B vs 65,159 B
-  for `full`, with a **stable** registry, so the request prefix stays cacheable.
-  Measured on five real triage tasks in 2026-10: steps 41.1k tokens/step vs 58.2k
-  for `full` (−29 %), but +30 % steps and +39 % tool calls (help round trips and
-  argument-name retries), so the **total** is only ~8 % lower and cost-weighted
-  (cache hit ≈ 0.26× fresh) ~3 % — a wash on short tasks, a modest win only past
-  ~10 steps. Do not advertise this as a token-saving mode; `preset: core` is the
-  cheaper lever. Full numbers: dsh-gitea#51.
+- `dispatcher` is the smallest surface: two meta-tools, `gitea { operation,
+  args }` and `gitea_help { operation }` (which returns one operation's JSON
+  Schema as a tool result). The registry is **stable** — no dynamic registration
+  — so the request prefix stays cacheable, and every operation is still reachable.
+  The trade-off is measured, not theoretical: on five real triage tasks (2026-10)
+  a step cost 41.1k tokens instead of 58.2k (−29 %), but the agents needed
+  +30 % steps (help round trips and argument-name retries), so the **total** was
+  only ~8 % lower and cost-weighted (cache hit ≈ 0.26× fresh) roughly level.
+  Expect a wash on short tasks and a modest win past ~10 steps; it is **not** a
+  magic token saver (#51). Unknown arguments come back as a clear error naming
+  the accepted ones, which is why retries are cheap.
 
 ## Verify
 

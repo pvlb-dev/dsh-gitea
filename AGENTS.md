@@ -66,7 +66,7 @@ Consumers mirror this table and link here.
 | `gitea_wiki` has no create/update/delete | handler/defs/client implemented only list/get | clone the wiki repo, commit, push | #10 | fixed in `fbca62a` |
 | Plugin Auto-Updater fails on global installs | `findDshCliEntry` walked the `dsh` symlink path, so `cliEntry` was undefined | manual `dsh plugin add <tarball>` | #44 | fixed in `e43e4ca` (0.8.1) |
 | `sanitizeForPublic` rewrites `dsh-gitea` to `user-gitea` when `USER=dsh` | env user scrubbed as a bare word | `scripts/mirror-public.mjs` clears `USER` around the call; direct `gitea_mirror_public` callers still hit it | #46 | open |
-| `gitea_issue_get`/`_list` hide labels, assignee and milestone | the formatter branches never read them (`slimRecord` may strip them too) | `gitea_issue_timeline` for label events; assignee only inferable from absence | #52 | open |
+| `gitea_issue_get`/`_list` hide labels, assignee and milestone | the formatter branches never read them | none needed; both now render the metadata | #52 | fixed in `4848dd7` (0.8.6) |
 | `gitea_issue_templates` says it reads `.gitea/ISSUE_TEMPLATE/` | tool-def text is stale; the handler prefers the bundled `assets/issue-templates/` | describe the bundled pack in docs | #47 | open |
 
 Fixing a tool bug = one issue, one PR, a formatter test, and a row update in
@@ -90,9 +90,10 @@ The tracker holds the repros and acceptance notes; this table is the index.
 
 - A DSH **profile bundle + plugin** that connects the Harness to a self-hosted
   Gitea/Forgejo instance: 96 first-class agent tools, a preset-switchable tool
-  surface (`preset`/`tools`/`excludeTools`, #49), 37 compatibility aliases that
-  are opt-in since 0.8.5 (`legacyAliases`, #48), HTTP routes, a Git status chip
-  in the session header, and a settings page.
+  surface (`preset`/`tools`/`excludeTools`, #49) including the opt-in two-tool
+  `dispatcher` surface (#51), 37 compatibility aliases that are opt-in since
+  0.8.5 (`legacyAliases`, #48), HTTP routes, a Git status chip in the session
+  header, and a settings page.
 - This checkout is our **deployment fork** of the upstream public repo
   [`GooDAnDReaDY/dsh-gitea`](https://github.com/GooDAnDReaDY/dsh-gitea) (MIT).
   `origin` is our Forgejo, `upstream` is the GitHub project. The policy is
@@ -113,7 +114,7 @@ The tracker holds the repros and acceptance notes; this table is the index.
   `@goodandready/dsh-gitea`; the old scoped package stays in the registry for
   pinned installs). The bundle row id and Settings namespace stay `dsh-gitea`, so
   the `plugins.row.config` key is now `dsh-gitea#dsh-gitea`.
-  Fork version: `0.8.5` (see "Versioning and tags"). Runtime peer range:
+  Fork version: `0.8.6` (see "Versioning and tags"). Runtime peer range:
   `>=0.1.7-rc.2 <0.2.0-0 || >=0.2.0-rc.1 <0.3.0-0 || >=0.2.1-0 <0.3.0-0`
   (`peerDependencies`) — widened on 2026-10-24 so the running `0.2.1-rc.2`
   Harness satisfies it, because `^0.2.0-rc.1` excludes prereleases of a
@@ -197,10 +198,10 @@ The tracker holds the repros and acceptance notes; this table is the index.
 
 ### Versioning and tags
 
-- Fork version: `0.8.5` (tool-surface presets + opt-in aliases; 0.8.4 was
-  staged npmjs publishing, 0.8.3 publish config, 0.8.2 README + peer-range).
-  Earlier builds used `<upstream base>-dsh.<n>`; hotfixes can use
-  `0.8.5-dsh.<n>` if needed.
+- Fork version: `0.8.6` (dispatcher preset + issue metadata; 0.8.5 was
+  tool-surface presets + opt-in aliases, 0.8.4 staged npmjs publishing, 0.8.3
+  publish config, 0.8.2 README + peer-range). Earlier builds used
+  `<upstream base>-dsh.<n>`; hotfixes can use `0.8.6-dsh.<n>` if needed.
 - Tag every state that is live on the server as `v<version>` (for example
   `v0.8.1`). Rollback = `git checkout <tag>`, toggle the bundle off/on,
   hard-refresh.
@@ -305,6 +306,7 @@ The tracker holds the repros and acceptance notes; this table is the index.
 | `lib/routes-hub.js` | Interactive Hub action dispatcher used by `POST /dsh-gitea/hub` |
 | `lib/http-guard.js` | Host/Origin/CSRF fence + DSH Connection authentication for custom routes |
 | `lib/selection.js` | Tool-surface presets, glob patterns and alias filtering (#48/#49); pure module shared by `lib/index.js` and the tests |
+| `lib/dispatcher.js` | Opt-in `preset: dispatcher` (#51): catalog, per-operation help and argument validation, all derived from `TOOL_DEFS` |
 | `lib/gitea-client.js` | Gitea REST client (cache, ETags, retry, timeouts) |
 | `lib/plugin-updater.js` | One-click updater: Forgejo registry packument, unscoped install, loopback fence + `updates` switch |
 | `lib/handlers.js`, `lib/handlers/*` | Tool implementations; `lib/tool-defs.js`, `lib/tool-defs/*` hold schemas |
@@ -988,3 +990,25 @@ and targets, read-only so both arms could run on the same issues.
    default and do **not** add a "token saving" claim to the README. The functional
    result is good (5/5 tasks via 2 tools); the economics are a wash on short
    tasks. Data posted on #51.
+
+## Session log — dispatcher preset and issue metadata (0.8.6, 2026-10-25)
+
+The operator shipped both follow-ups from the #51 spike in one release.
+
+1. #52 (`4848dd7`, PR #53): `gitea_issue_get` renders a metadata line
+   (`labels: … · assignee: @me · milestone: 0.9`, omitted when empty) and
+   `issue_list`/`issue_search` rows carry `[labels · @assignee]`. `RECORD_KEYS`
+   already kept the fields; the formatters simply never read them. Covered by
+   `test/issue-metadata.test.mjs` (6 shapes, including the all-empty case with no
+   stray separators) and live-checked on `dsh-resend-mcp` #8.
+2. #51 (`0d4cdd8`, PR #54): merged the dispatcher branch — `preset: dispatcher`
+   registers `gitea` + `gitea_help`, `lib/dispatcher.js` builds the catalog and
+   per-operation help from `TOOL_DEFS`, and `executeCanonicalTool()` is shared
+   with the typed tools. `full` remains the default on purpose: the measured
+   trade-off (+29 % cheaper steps, +30 % steps, ~8 % lower total) makes it a
+   long-session option, not a replacement.
+3. README documents the preset and the measured trade-off honestly (no "token
+   saving" claim); CHANGELOG has the 0.8.6 entry. `npm run check`: 188 tests,
+   leak scan clean, syntax clean.
+4. Released `0.8.6`; #51 and #52 close with the release reference. The
+   `experiment/dispatcher` branch stays for history only.
