@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.8.5] - 2026-10-24
+
+### Smaller tool payload and a switchable tool surface
+
+Every registered tool's schema is bound into every request. dsh-gitea
+contributed 133 names / 107,157 B — 61.5 % of a 174,372 B session tool payload —
+including 37 deprecated aliases that duplicated their canonical schemas for zero
+extra capability.
+
+- **#48 — aliases are opt-in.** `legacyAliases: false` is the new default
+  (~42 KB / ~11k tokens saved per session). `LEGACY_MAP` and alias dispatch are
+  unchanged, so a replayed session that calls `gitea_issue_set_labels` still
+  resolves; only the advertised surface shrinks. `legacyAliases: true` restores
+  the 0.8.4 name set (133 names).
+- **#49 — presets, allowlist, denylist.** `preset: core | issues | prs | repos |
+  ops | full | none | custom`, plus `tools` (globs; non-empty replaces the
+  preset) and `excludeTools`. `full` stays the default and is byte-identical to
+  the 0.8.4 canonical set; the four domain presets are disjoint and cover all 96
+  tools. The settings form gained a **Tool Surface** section that shows the live
+  count and any pattern that matched nothing. Changing the surface re-registers
+  the tools immediately — no restart.
+- Measured on the wire schema: `core` 11,640 B / 15 tools, `issues` 15,586 B,
+  `prs` 17,480 B, `repos` 12,026 B, `ops` 20,067 B, `none` 0 B, `full`
+  65,159 B, `full` + aliases 107,157 B.
+- New `lib/selection.js` is a pure resolver (pattern matching, presets, alias
+  filtering) and mirrors the `dsh-resend-mcp` interface. Covered by
+  `test/selection.test.mjs` and `test/tool-surface.test.mjs`, the latter boots
+  the plugin against a stub registry and asserts the advertised names per preset.
+
 ## [0.8.4] - 2026-10-24
 
 ### Publish to npmjs through staged publishing

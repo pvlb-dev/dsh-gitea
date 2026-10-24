@@ -88,9 +88,10 @@ The tracker holds the repros and acceptance notes; this table is the index.
 ## What this repository is
 
 - A DSH **profile bundle + plugin** that connects the Harness to a self-hosted
-  Gitea/Forgejo instance: 96 first-class agent tools plus 37 compatibility
-  aliases (133 registered `gitea_*` names), HTTP routes, a Git status chip in
-  the session header, and a settings page.
+  Gitea/Forgejo instance: 96 first-class agent tools, a preset-switchable tool
+  surface (`preset`/`tools`/`excludeTools`, #49), 37 compatibility aliases that
+  are opt-in since 0.8.5 (`legacyAliases`, #48), HTTP routes, a Git status chip
+  in the session header, and a settings page.
 - This checkout is our **deployment fork** of the upstream public repo
   [`GooDAnDReaDY/dsh-gitea`](https://github.com/GooDAnDReaDY/dsh-gitea) (MIT).
   `origin` is our Forgejo, `upstream` is the GitHub project. The policy is
@@ -111,7 +112,7 @@ The tracker holds the repros and acceptance notes; this table is the index.
   `@goodandready/dsh-gitea`; the old scoped package stays in the registry for
   pinned installs). The bundle row id and Settings namespace stay `dsh-gitea`, so
   the `plugins.row.config` key is now `dsh-gitea#dsh-gitea`.
-  Fork version: `0.8.4` (see "Versioning and tags"). Runtime peer range:
+  Fork version: `0.8.5` (see "Versioning and tags"). Runtime peer range:
   `>=0.1.7-rc.2 <0.2.0-0 || >=0.2.0-rc.1 <0.3.0-0 || >=0.2.1-0 <0.3.0-0`
   (`peerDependencies`) — widened on 2026-10-24 so the running `0.2.1-rc.2`
   Harness satisfies it, because `^0.2.0-rc.1` excludes prereleases of a
@@ -195,9 +196,10 @@ The tracker holds the repros and acceptance notes; this table is the index.
 
 ### Versioning and tags
 
-- Fork version: `0.8.4` (staged npmjs publishing; 0.8.3 was publish config,
-  0.8.2 README + peer-range). Earlier builds used `<upstream base>-dsh.<n>`;
-  hotfixes can use `0.8.4-dsh.<n>` if needed.
+- Fork version: `0.8.5` (tool-surface presets + opt-in aliases; 0.8.4 was
+  staged npmjs publishing, 0.8.3 publish config, 0.8.2 README + peer-range).
+  Earlier builds used `<upstream base>-dsh.<n>`; hotfixes can use
+  `0.8.5-dsh.<n>` if needed.
 - Tag every state that is live on the server as `v<version>` (for example
   `v0.8.1`). Rollback = `git checkout <tag>`, toggle the bundle off/on,
   hard-refresh.
@@ -301,6 +303,7 @@ The tracker holds the repros and acceptance notes; this table is the index.
 | `lib/routes.js` | `/dsh-gitea/config`, `/events`, `/git-status`, `/git-graph`, `/sse`, `/hub`, `/release-assistant`, webhook |
 | `lib/routes-hub.js` | Interactive Hub action dispatcher used by `POST /dsh-gitea/hub` |
 | `lib/http-guard.js` | Host/Origin/CSRF fence + DSH Connection authentication for custom routes |
+| `lib/selection.js` | Tool-surface presets, glob patterns and alias filtering (#48/#49); pure module shared by `lib/index.js` and the tests |
 | `lib/gitea-client.js` | Gitea REST client (cache, ETags, retry, timeouts) |
 | `lib/plugin-updater.js` | One-click updater: Forgejo registry packument, unscoped install, loopback fence + `updates` switch |
 | `lib/handlers.js`, `lib/handlers/*` | Tool implementations; `lib/tool-defs.js`, `lib/tool-defs/*` hold schemas |
@@ -889,3 +892,42 @@ versions"). So this session built the automation rather than copying it.
    `Forgejo-Actions-Runner` (the automatic token *is* available with repository
    write; the old text claimed there was no implicit token) and a pointer in
    `Home.md`. Wiki changes are pushed to `main`, not `master`.
+
+## Session log — tool surface presets and opt-in aliases (0.8.5, 2026-10-24)
+
+Four issues (#48–#51) measured the plugin's share of the tool payload: 133 names
+/ 107,157 B, 61.5 % of a 174,372 B session payload, with 37 deprecated aliases
+duplicating canonical schemas. The operator asked for a separate branch for the
+experiments; the split was by risk, not by "feature vs experiment".
+
+1. #48 (`legacyAliases`, default **false**): every tool definition is built once
+   into `toolDefinitions` (a Map), and registration is driven by
+   `applyToolSelection()`. `LEGACY_MAP` and `runHandler` dispatch are untouched,
+   so an alias called from stale history still resolves; only the advertised
+   surface shrinks. `legacyAliases: true` restores all 133 names.
+2. #49 (`preset` / `tools` / `excludeTools`): new pure module `lib/selection.js`
+   mirrors the `dsh-resend-mcp` interface (glob patterns, `missingPatterns`,
+   no fatal unmatched pattern). Presets: `core` (15 hot tools), `issues`,
+   `prs`, `repos`, `ops`, `full`, `none`, `custom`; the four domain presets are
+   disjoint and their union is all 96 canonical tools. `full` is the default and
+   resolves in `TOOL_DEFS` order, so it is byte-identical to 0.8.4.
+3. Selection inputs are reduced to a signature; a settings write that does not
+   change the surface does not touch the registry (stable tool prefix). A
+   surface change disposes and re-registers through the disposer that
+   `ctx.tools.register()` returns — live, no restart. `parseConfig` unwraps the
+   volatile projection **before** validating `preset` (an unknown preset fails
+   at mount with the accepted names).
+4. `/dsh-gitea/config` now returns `toolSurface` (`preset`, `selected`,
+   `availableCount`, `aliasCount`, unmatched patterns) and the settings form
+   gained a **Tool Surface** section: preset select, allowlist, denylist, alias
+   checkbox, live count and unmatched-pattern warnings (en + zh).
+5. Measured on the live wire schema: `core` 11,640 B, `issues` 15,586 B, `prs`
+   17,480 B, `repos` 12,026 B, `ops` 20,067 B, `none` 0 B, `full` 65,159 B,
+   `full` + aliases 107,157 B. `test/selection.test.mjs` covers the resolver and
+   the preset/tool drift guard; `test/tool-surface.test.mjs` boots `apply()`
+   against a stub registry and asserts the advertised names per preset (96 / 15
+   / 0 / 133 with the flag).
+6. `npm run check`: 180 tests, leak scan clean, `node --check` clean. Released
+   `0.8.5`; #50 (lazy tool discovery) is deferred until the #51 dispatcher
+   spike reports, and #51 lives on `experiment/dispatcher` — experiment branches
+   are never tagged or published.

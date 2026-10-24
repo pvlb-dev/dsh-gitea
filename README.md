@@ -6,7 +6,7 @@
 
 Main repo on [pvlb.dev/dsh-plugins/dsh-gitea](https://git.pvlb.dev/dsh-plugins/dsh-gitea/)
 
-96 first-class tools · 133 registered names · settings page · live Git status chip
+96 first-class tools · preset-switchable surface · settings page · live Git status chip
 
 [Install](#install) · [Configure](#configure) · [The toolset](#the-toolset) · [Safety](#safety-by-default) · [Development](#development) · [npm](https://www.npmjs.com/package/dsh-gitea)
 
@@ -151,6 +151,41 @@ without a restart.
 Optional: set `defaultOwner` and `defaultRepo` so tools that omit `owner`/`repo`
 fall back to your usual repository.
 
+### Tool surface — keep the payload small
+
+Every registered tool's schema is bound into every request, so the plugin has a
+preset switch. The default is `full` (all 96 canonical tools); narrow it when a
+workspace only files issues or only reviews pull requests.
+
+```yaml
+- id: dsh-gitea
+  config:
+    preset: core        # core | issues | prs | repos | ops | full | none | custom
+    tools: []           # glob allowlist; non-empty replaces the preset
+    excludeTools: []    # patterns removed after the preset/allowlist
+    legacyAliases: false
+```
+
+| Preset | Tools | Schema bytes | ≈ tokens |
+|:--|--:|--:|--:|
+| `full` (default) | 96 | 65,159 | ~17.6k |
+| `core` | 15 | 11,640 | ~3.1k |
+| `issues` | 22 | 15,586 | ~4.2k |
+| `prs` | 27 | 17,480 | ~4.7k |
+| `repos` | 17 | 12,026 | ~3.3k |
+| `ops` | 30 | 20,067 | ~5.4k |
+| `none` | 0 | 0 | 0 |
+| `full` + `legacyAliases` | 133 | 107,157 | ~29k |
+
+- `core` is the 15 hot tools; the domain presets are disjoint and their union is
+  `full`. `*` is the only wildcard, and a pattern that matches nothing is
+  reported in the settings form and the log instead of being ignored silently.
+- `legacyAliases` (default **off** since 0.8.5) re-advertises the 37 pre-0.8
+  alias names. They duplicate their canonical schema, so they cost ~42 KB of
+  payload; an alias call still resolves even when it is not advertised.
+- Saving a different surface re-registers the tools immediately (no restart).
+  `preset: none` is for workspaces where the agent should not see Gitea tools.
+
 ## Verify
 
 - **Settings → Gitea** exists and lists fields; **Plugins** lists `dsh-gitea`
@@ -174,8 +209,9 @@ fall back to your usual repository.
 
 ## The toolset
 
-**96 first-class tools + 37 compatibility aliases = 133 registered `gitea_*`
-names.** Repository-scoped tools take optional `owner`/`repo` (falling back to
+**96 first-class tools** (all advertised by the `full` preset) plus **37
+compatibility aliases** that are opt-in since 0.8.5. Repository-scoped tools take
+optional `owner`/`repo` (falling back to
 `defaultOwner`/`defaultRepo`, then to the session's git origin), and every
 tool accepts an `instance` selector for multi-instance setups. Destructive
 tools require `confirm: true` and the riskier helpers are dry-run-first, so an
