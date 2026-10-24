@@ -222,8 +222,11 @@ The tracker holds the repros and acceptance notes; this table is the index.
   only)*: npm rejects a direct `npm publish` from CI with `EOTP`, so a
   maintainer approves the staged version with 2FA — `npm stage approve
   <stage-id>` or the package page on npmjs.com. The job skips silently when the
-  secret is absent. The first approval creates and claims the unscoped
-  `dsh-gitea` package; upstream `@goodandready/dsh-gitea` stays retired.
+  secret is absent. Staging already reserves the unscoped `dsh-gitea` name
+  (npm publishes a `0.0.0-stage` placeholder with `latest` pointing at it), so
+  until a maintainer approves, `dsh plugin add dsh-gitea` would install that
+  placeholder. Approval replaces it with the tagged version. Upstream
+  `@goodandready/dsh-gitea` stays retired.
 - The package is public: no `private` field, `publishConfig.access: public`,
   `files` = `lib/`, `assets/`, `cordis.patch.yml`, `README.md`, `LICENSE`. The
   Forgejo job publishes it, the npmjs job stages it.
