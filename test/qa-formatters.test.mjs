@@ -61,6 +61,12 @@ test('CI jobs accepts the Forgejo workflow_jobs envelope (#26)', () => {
   assert.match(out, /#9 check \[completed\/success\]/)
 })
 
+test('CI jobs accepts Forgejo bare array of jobs (#26)', () => {
+  const out = text('gitea_ci', ok([{ id: 78, name: 'check', status: 'success', html_url: 'https://git.example/jobs/78' }]))
+  assert.match(out, /^CI Jobs \(1\):$/m)
+  assert.match(out, /#78 check \[success\]/)
+})
+
 test('CI run renders detail and job summary (#26)', () => {
   const out = text('gitea_ci', ok({
     id: 74,
