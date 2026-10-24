@@ -111,7 +111,7 @@ The tracker holds the repros and acceptance notes; this table is the index.
   `@goodandready/dsh-gitea`; the old scoped package stays in the registry for
   pinned installs). The bundle row id and Settings namespace stay `dsh-gitea`, so
   the `plugins.row.config` key is now `dsh-gitea#dsh-gitea`.
-  Fork version: `0.8.3` (see "Versioning and tags"). Runtime peer range:
+  Fork version: `0.8.4` (see "Versioning and tags"). Runtime peer range:
   `>=0.1.7-rc.2 <0.2.0-0 || >=0.2.0-rc.1 <0.3.0-0 || >=0.2.1-0 <0.3.0-0`
   (`peerDependencies`) — widened on 2026-10-24 so the running `0.2.1-rc.2`
   Harness satisfies it, because `^0.2.0-rc.1` excludes prereleases of a
@@ -195,9 +195,9 @@ The tracker holds the repros and acceptance notes; this table is the index.
 
 ### Versioning and tags
 
-- Fork version: `0.8.3` (first public npmjs release; 0.8.2 was README +
-  peer-range). Earlier builds used `<upstream base>-dsh.<n>`; hotfixes can use
-  `0.8.3-dsh.<n>` if needed.
+- Fork version: `0.8.4` (staged npmjs publishing; 0.8.3 was publish config,
+  0.8.2 README + peer-range). Earlier builds used `<upstream base>-dsh.<n>`;
+  hotfixes can use `0.8.4-dsh.<n>` if needed.
 - Tag every state that is live on the server as `v<version>` (for example
   `v0.8.1`). Rollback = `git checkout <tag>`, toggle the bundle off/on,
   hard-refresh.
@@ -216,12 +216,17 @@ The tracker holds the repros and acceptance notes; this table is the index.
   already exists. The repo secret `NPM_TOKEN` holds a Forgejo token with the
   `write:package` scope.
 - `.forgejo/workflows/publish-npmjs.yml` runs on the same tag, re-runs the same
-  checks and publishes the same tarball to the public npm registry. It uses the
-  repo secret `NPMJS_TOKEN` (the token from the `dsh-resend-mcp` setup) and
-  skips silently when the secret is absent. 0.8.3 claims the unscoped public
-  name `dsh-gitea`; the upstream `@goodandready/dsh-gitea` name is retired.
+  checks and **stages** the tarball on the public npm registry with
+  `npm stage publish` (npm 12 on Node 24; the runner needs npm >= 11.15). The
+  repo secret `NPMJS_TOKEN` is a granular token with *read and write (stage
+  only)*: npm rejects a direct `npm publish` from CI with `EOTP`, so a
+  maintainer approves the staged version with 2FA — `npm stage approve
+  <stage-id>` or the package page on npmjs.com. The job skips silently when the
+  secret is absent. The first approval creates and claims the unscoped
+  `dsh-gitea` package; upstream `@goodandready/dsh-gitea` stays retired.
 - The package is public: no `private` field, `publishConfig.access: public`,
-  `files` = `lib/`, `assets/`, `cordis.patch.yml`, `README.md`, `LICENSE`.
+  `files` = `lib/`, `assets/`, `cordis.patch.yml`, `README.md`, `LICENSE`. The
+  Forgejo job publishes it, the npmjs job stages it.
 - Release ritual: bump `package.json` + `CHANGELOG.md`, commit, push `master`,
   then `git tag -a v<version> -m "…" && git push origin v<version>`.
 - Install a published build from its tarball (dependencies resolve from npmjs):
@@ -260,9 +265,10 @@ The tracker holds the repros and acceptance notes; this table is the index.
    `false` for the `link:` dev checkout. Enabling it lets the next update replace
    that checkout with the published package — deliberate, not an accident.
 7. **Fork identity:** keep the package name and bundle row id. A tag publishes
-   to both registries (Forgejo via `NPM_TOKEN`, npmjs via `NPMJS_TOKEN`); the
-   npmjs name `dsh-gitea` is ours. Do not add GitHub as a push remote — the
-   GitHub presence is a Forgejo push mirror or a manual force push.
+   to Forgejo (`NPM_TOKEN`) and stages on npmjs (`NPMJS_TOKEN`, stage-only); a
+   maintainer then approves the staged npmjs version with 2FA. The npmjs name
+   `dsh-gitea` is ours. Do not add GitHub as a push remote — the GitHub presence
+   is a Forgejo push mirror or a manual force push.
 
 ## Repository map
 
@@ -799,3 +805,17 @@ first public version, keeping the Forgejo registry as the second target.
    mirror of `master` over the upstream fork, so GitHub shows upstream `main`
    and our `master`; upstream stays fetch-only and is rebased every month or
    two. `scripts/mirror-public.mjs` stays available but is not the chosen path.
+
+## Session log — staged npmjs publishing (0.8.4, 2026-10-24)
+
+The first npmjs run of v0.8.3 failed with `EOTP`: npm's current granular
+tokens are *stage only*, so a direct `npm publish` can never work from CI.
+
+1. `publish-npmjs.yml` now installs npm 12 on Node 24 (npm `stage` needs
+   >= 11.15 and Node >= 22.14) and runs `npm stage publish`; the same tag
+   guard, `npm run check` and duplicate-version skip stay in front.
+2. Approval is a maintainer step with 2FA: `npm stage approve <stage-id>` or
+   the package page on npmjs.com. The first approval creates and claims the
+   unscoped `dsh-gitea` package; the job prints the stage id.
+3. 0.8.4 is the first version staged this way; 0.8.3 stays published on the
+   Forgejo registry only.

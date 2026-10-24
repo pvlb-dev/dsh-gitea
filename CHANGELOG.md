@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.8.4] - 2026-10-24
+
+### Publish to npmjs through staged publishing
+
+- npm's current granular tokens are *stage only*: a direct `npm publish` from CI
+  is rejected with `EOTP`. `.forgejo/workflows/publish-npmjs.yml` now uses
+  `npm stage publish` (npm 12 on Node 24) and a maintainer approves the staged
+  version with 2FA (`npm stage approve <stage-id>` or the package page on
+  npmjs). The release stays gated by the same tag/version check and
+  `npm run check`.
+- 0.8.4 is the first version staged for public npmjs; approving it creates and
+  claims the unscoped `dsh-gitea` package.
+
 ## [0.8.3] - 2026-10-24
 
 ### Public on npmjs

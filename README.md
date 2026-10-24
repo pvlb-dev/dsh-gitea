@@ -99,7 +99,7 @@ dsh plugin --profile web add https://git.pvlb.dev/dsh-plugins/dsh-gitea.git
 Pinned to a release tag:
 
 ```bash
-dsh plugin --profile web add https://git.pvlb.dev/dsh-plugins/dsh-gitea.git#v0.8.3
+dsh plugin --profile web add https://git.pvlb.dev/dsh-plugins/dsh-gitea.git#v0.8.4
 ```
 
 The `.git` suffix is what makes pnpm treat the URL as a git repository. Without
@@ -111,7 +111,7 @@ it the URL is fetched as a tarball and the install fails with
 Use this when neither npmjs nor the git remote is reachable from the DSH host:
 
 ```bash
-dsh plugin --profile web add https://git.pvlb.dev/api/packages/dsh-plugins/npm/dsh-gitea/-/0.8.3/dsh-gitea-0.8.3.tgz
+dsh plugin --profile web add https://git.pvlb.dev/api/packages/dsh-plugins/npm/dsh-gitea/-/0.8.4/dsh-gitea-0.8.4.tgz
 ```
 
 Either way the package is self-contained — `lib/index.js` plus
@@ -551,13 +551,14 @@ Three Forgejo Actions workflows in `.forgejo/workflows/`:
 |:--|:--|:--|
 | `ci.yml` | push to `master`, manual dispatch | Node 22.6 → `npm run check`, then `npm pack --dry-run` |
 | `publish.yml` | tag `v*` (manual = dry run) | re-runs the checks, requires the tag to equal `v<package.json version>`, publishes to the Forgejo registry, skips an already-published version |
-| `publish-npmjs.yml` | tag `v*` (manual = checks only) | the same checks and tag guard, then `npm publish` to the public npm registry; skipped while the `NPMJS_TOKEN` secret is absent |
+| `publish-npmjs.yml` | tag `v*` (manual = checks only) | the same checks and tag guard, then `npm stage publish` to the public npm registry; skipped while the `NPMJS_TOKEN` secret is absent |
 
 - Registries: the Forgejo one is
   `https://git.pvlb.dev/api/packages/dsh-plugins/npm/` (secret `NPM_TOKEN`, a
   Forgejo token with the `write:package` scope); npmjs is the default registry
-  (secret `NPMJS_TOKEN`). An empty `NPM_TOKEN` fails the Forgejo job; an empty
-  `NPMJS_TOKEN` only skips the public publish.
+  (secret `NPMJS_TOKEN`, a granular token with *read and write (stage only)*).
+  An empty `NPM_TOKEN` fails the Forgejo job; an empty `NPMJS_TOKEN` only skips
+  the public publish.
 - `package.json` is public (`publishConfig.access: public`), so both jobs
   publish the same tarball; `files` keeps the package to `lib/`, `assets/`,
   `cordis.patch.yml`, `README.md` and `LICENSE`.
@@ -565,23 +566,29 @@ Three Forgejo Actions workflows in `.forgejo/workflows/`:
   the host's rootless Docker socket, so only maintainer-controlled events may
   execute a workflow.
 - A tag push is the only path that publishes, and the same tag publishes to both
-  registries.
+  registries — the Forgejo one directly, npmjs as a staged version that a
+  maintainer approves with 2FA (`npm stage approve <stage-id>`, or the package
+  page on npmjs.com). `npm publish` would be rejected by a stage-only token.
 
 Release ritual:
 
 ```bash
 # bump package.json + CHANGELOG.md, commit
 git push origin master
-git tag -a v0.8.3 -m "dsh-gitea 0.8.3"
-git push origin v0.8.3        # triggers publish.yml and publish-npmjs.yml
+git tag -a v0.8.4 -m "dsh-gitea 0.8.4"
+git push origin v0.8.4        # triggers publish.yml and publish-npmjs.yml
+
+# npmjs stages instead of publishing: approve the staged version with 2FA
+# (or click Approve on the package page at npmjs.com)
+npm stage approve <stage-id>
 ```
 
 Versioning:
 
-- Current fork version `0.8.3`, tag `v0.8.3`; earlier builds used
+- Current fork version `0.8.4`, tag `v0.8.4`; earlier builds used
   `<upstream base>-dsh.<n>` (for example `0.7.40-dsh.7`), hotfixes may use
-  `0.8.3-dsh.<n>`. Tag every state that is live on the server.
-- Rollback: `git checkout v0.8.3`, toggle the bundle off and on, hard-refresh.
+  `0.8.4-dsh.<n>`. Tag every state that is live on the server.
+- Rollback: `git checkout v0.8.4`, toggle the bundle off and on, hard-refresh.
 - `CHANGELOG.md` gets a fork entry per release; upstream entries stay intact.
 - Keep the `peerDependencies` DSH range in step with the Harness prerelease
   line (it currently names `>=0.1.7-rc.2 <0.2.0-0`, `>=0.2.0-rc.1 <0.3.0-0` and
