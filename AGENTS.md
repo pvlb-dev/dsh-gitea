@@ -230,8 +230,27 @@ The tracker holds the repros and acceptance notes; this table is the index.
 - The package is public: no `private` field, `publishConfig.access: public`,
   `files` = `lib/`, `assets/`, `cordis.patch.yml`, `README.md`, `LICENSE`. The
   Forgejo job publishes it, the npmjs job stages it.
+- `.forgejo/workflows/release.yml` runs on the same `v*` tag (manual dispatch
+  prints the generated notes instead) and creates the **Forgejo release page**:
+  `scripts/release-notes.mjs <version>` turns the `## [<version>]` section of
+  `CHANGELOG.md` into `{tag_name, name, body, draft, prerelease}`, appending an
+  install snippet and the home/npm links; the workflow POSTs that to
+  `/api/v1/repos/<owner>/<repo>/releases`, then uploads the `npm pack` tarball as
+  a release asset (`.../releases/download/v<version>/dsh-gitea-<version>.tgz`).
+  **Idempotent by design:** an existing release for the tag is left alone, so
+  notes edited in the UI survive a re-run and there is no update path in the
+  workflow. Auth is the automatic Actions token (`GITHUB_TOKEN`, repository
+  write for same-repository tag pushes; the docs say `FORGEJO_TOKEN` is set
+  too); a repository secret `RELEASE_TOKEN` overrides it, and an empty token
+  only warns and skips. No `write:package` token can create releases — that
+  scope is packages-only. Keep the script dependency-free and covered by
+  `test/release-notes.test.mjs`, because `npm run check` is the CI gate that
+  guards it.
 - Release ritual: bump `package.json` + `CHANGELOG.md`, commit, push `master`,
-  then `git tag -a v<version> -m "…" && git push origin v<version>`.
+  then `git tag -a v<version> -m "…" && git push origin v<version>`. The tag
+  starts three jobs: registry publish, npmjs stage, release page. To backfill a
+  tag that predates `release.yml`, dispatch it manually or POST the payload
+  from `scripts/release-notes.mjs` with a user token.
 - Install a published build from its tarball (dependencies resolve from npmjs):
   ```bash
   dsh plugin --profile web add \
@@ -288,9 +307,10 @@ The tracker holds the repros and acceptance notes; this table is the index.
 | `lib/settings`-related | Settings live in `lib/index.js` (`Config`, `readServedConfig`, `servedScope`); UI in `lib/client.js` |
 | `assets/issue-templates/` | Issue form templates the plugin can install |
 | `cordis.patch.yml` | Bundle patch: inserts the `dsh-gitea` row with empty config |
-| `.forgejo/workflows/` | `ci.yml` (push checks), `publish.yml` (tag → Forgejo registry), `publish-npmjs.yml` (tag → npmjs) |
+| `.forgejo/workflows/` | `ci.yml` (push checks), `publish.yml` (tag → Forgejo registry), `publish-npmjs.yml` (tag → npmjs), `release.yml` (tag → Forgejo release page + tarball) |
 | `scripts/dev-link-dsh.mjs` | Links DSH peer packages into this checkout for `link:` installs |
 | `scripts/leak-scan.mjs` | Fails on private paths/scopes/tokens/Cyrillic in the publishable tree |
+| `scripts/release-notes.mjs` | `CHANGELOG.md` section → Forgejo release payload (name, notes, install snippet) |
 | `scripts/mirror-public.mjs` | Builds a sanitized, push-ready snapshot for a GitHub fork; never pushes |
 | `test/*.test.mjs` | Fork regression checks (`npm test`); upstream ships no tests, so this suite is ours |
 
@@ -822,3 +842,36 @@ tokens are *stage only*, so a direct `npm publish` can never work from CI.
    unscoped `dsh-gitea` package; the job prints the stage id.
 3. 0.8.4 is the first version staged this way; 0.8.3 stays published on the
    Forgejo registry only.
+
+## Session log — generated Forgejo releases (2026-10-24)
+
+The operator pointed at the Releases page of `dsh-plugins/dsh-resend-mcp` and
+asked for the same for this repo, plus the same template in the vps-setup
+bootcamp. Note for the record: **the sibling repo has no release workflow** —
+its three releases were written and published by hand through the Forgejo UI
+(`docs/publishing.md` only says "Forgejo releases exist for the tagged
+versions"). So this session built the automation rather than copying it.
+
+1. `scripts/release-notes.mjs` (new, dependency-free): reads `CHANGELOG.md`,
+   finds the `## [<version>]` section, uses its first `###` heading for the
+   release name (`v0.8.4 — Publish to npmjs through staged publishing`), keeps
+   the rest as the body and appends an install snippet plus the home/npm links.
+   `--body` prints the notes for a dry run, the default prints the JSON payload
+   for `POST /repos/{owner}/{repo}/releases`. A missing section yields a
+   one-liner instead of a failure, and a version with a `-` is marked
+   `prerelease`. `test/release-notes.test.mjs` covers all of it (5 tests).
+2. `.forgejo/workflows/release.yml` (new) runs on the same `v*` tag as the two
+   publish workflows: tag/version guard, notes preview on manual dispatch,
+   existing-release check via `GET /releases/tags/<tag>` (200 → leave the page
+   untouched, so hand-edited notes win), `POST /releases`, then `npm pack` and
+   `POST /releases/<id>/assets?name=…` for the tarball. Auth uses the automatic
+   Actions token (`GITHUB_TOKEN`, with `FORGEJO_TOKEN` as a fallback); the
+   `RELEASE_TOKEN` secret overrides it, and no token only warns and skips.
+   `write:package` tokens cannot create releases, so the packages secret is
+   not reusable here.
+3. Backfilled the three tags that predate the workflow using the same payload
+   and API calls with a user token: `v0.8.2`/`v0.8.3`/`v0.8.4` releases now
+   exist with titles from the changelog and the `dsh-gitea-<version>.tgz`
+   asset (asset download verified 200 for all three).
+4. Documented the fourth workflow in `README.md` (table row + generated-release
+   bullet + ritual comment) and here (CI section, repository map).

@@ -547,13 +547,23 @@ Two caveats:
 
 ## CI, releases and versioning
 
-Three Forgejo Actions workflows in `.forgejo/workflows/`:
+Four Forgejo Actions workflows in `.forgejo/workflows/`:
 
 | Workflow | Trigger | Does |
 |:--|:--|:--|
 | `ci.yml` | push to `master`, manual dispatch | Node 22.6 → `npm run check`, then `npm pack --dry-run` |
 | `publish.yml` | tag `v*` (manual = dry run) | re-runs the checks, requires the tag to equal `v<package.json version>`, publishes to the Forgejo registry, skips an already-published version |
 | `publish-npmjs.yml` | tag `v*` (manual = checks only) | the same checks and tag guard, then `npm stage publish` to the public npm registry; skipped while the `NPMJS_TOKEN` secret is absent |
+| `release.yml` | tag `v*` (manual = notes preview) | creates the Forgejo release page for the tag: name and notes from `CHANGELOG.md`, plus the npm tarball as a downloadable asset; never rewrites an existing release |
+
+- Release pages are generated, not hand-written: `scripts/release-notes.mjs`
+  turns the `## [<version>]` changelog section into the title
+  (`v0.8.4 — Publish to npmjs through staged publishing`) and body, and appends
+  the install command for that exact version. The workflow uses the automatic
+  Actions token (a `RELEASE_TOKEN` secret overrides it) and leaves an existing
+  release untouched, so notes edited in the UI survive later re-runs. The same
+  page carries the tarball:
+  `.../releases/download/v<version>/dsh-gitea-<version>.tgz`.
 
 - Registries: the Forgejo one is
   `https://git.pvlb.dev/api/packages/dsh-plugins/npm/` (secret `NPM_TOKEN`, a
@@ -578,7 +588,7 @@ Release ritual:
 # bump package.json + CHANGELOG.md, commit
 git push origin master
 git tag -a v0.8.4 -m "dsh-gitea 0.8.4"
-git push origin v0.8.4        # triggers publish.yml and publish-npmjs.yml
+git push origin v0.8.4        # triggers publish.yml, publish-npmjs.yml and release.yml
 
 # npmjs stages instead of publishing: approve the staged version with 2FA
 # (or click Approve on the package page at npmjs.com)
