@@ -954,3 +954,37 @@ experiments; the split was by risk, not by "feature vs experiment".
    `latest` dist-tag stays 0.8.4 until a maintainer approves the stage with 2FA.
    The live session then advertised the 96 canonical names with no alias, i.e.
    the HMR reload applied the new default.
+
+## Session log — #51 dispatcher spike measured (2026-10-25)
+
+The operator asked for real sessions: five open issues across three other
+projects, triaged by five fresh cold-context agents per arm, identical prompts
+and targets, read-only so both arms could run on the same issues.
+
+1. Arm A `preset: full` (96 tools / 65,159 B); arm B `preset: dispatcher`
+   (2 tools / 8,973 B). The flip to dispatcher was a one-line default change on
+   this branch, picked up by HMR; the probe session confirmed it saw exactly
+   `gitea` + `gitea_help`. Reverting to `master` restored the 96 typed tools live.
+2. Measured from each agent's session log (`request/header` bytes, per-step
+   `usage`, `tool/call` names): steps 33 → 43, gitea calls 31 → 43 (6 `gitea_help`
+   + retries), argument errors 0 → 10 (all recovered), fresh input 127,912 →
+   207,728, cache read 1,762,176 → 1,542,784, total tokens 1,919,082 → 1,768,138
+   (−8 %), per-step 58.2k → 41.1k (−29 %).
+3. The payload delta shows up exactly as predicted on a cold first request
+   (50,530 vs 34,716 prompt tokens = 15,814 = 56 KB of schema), but it is
+   **cache-read** tokens, which are cheap; the extra round trips are not. Cost
+   weighted (cache ≈ 0.26 × fresh) the two arms are within ~3 %. Crossover is
+   ~8–10 steps, so triage-sized tasks are a wash and longer sessions win a
+   little, never the 7× the payload ratio suggests.
+4. The 10 errors are one class: guessed argument names (`index` for `number`,
+   `owner` for `repo: "owner/name"` + `q`, `includeComments` for
+   `include_comments`, `issue` for `type`). The dispatcher's error text names the
+   accepted arguments, which is why every run recovered — but each retry is a
+   step the typed schema would not have cost.
+5. Both arms also hit dsh-gitea#52 (issue formatters hide labels/assignee), so
+   every triage needed `gitea_issue_timeline`; fixing that removes one call per
+   triage in either mode.
+6. Conclusion: keep this as an opt-in experiment, do **not** merge it as the
+   default and do **not** add a "token saving" claim to the README. The functional
+   result is good (5/5 tasks via 2 tools); the economics are a wash on short
+   tasks. Data posted on #51.
