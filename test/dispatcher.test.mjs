@@ -12,8 +12,20 @@ import {
   findOperation,
   validateOperationArgs,
 } from '../lib/dispatcher.js'
-import { apply } from '../lib/index.js'
 import { TOOL_DEFS } from '../lib/tool-defs.js'
+
+// `apply` needs the DSH peer packages, which a clean CI install does not have
+// (see AGENTS.md, "Verification limitations"). The pure dispatcher checks below
+// never need it; only the boot-level assertions do.
+let apply = null
+let skipReason = false
+try {
+  ({ apply } = await import('../lib/index.js'))
+} catch (err) {
+  if (err?.code !== 'ERR_MODULE_NOT_FOUND') throw err
+  skipReason = `DSH peer packages are not installed here (${err.message.split('\n')[0]})`
+}
+const bootTest = (name, fn) => test(name, { skip: skipReason }, fn)
 
 // Same minimal Cordis-shaped context as test/tool-surface.test.mjs, but it also
 // keeps the definitions so the payload comparison can serialize them.
@@ -133,12 +145,12 @@ test('validation rejects unknown arguments and wrong types', () => {
   assert.equal(validateOperationArgs(def, null).ok, false)
 })
 
-test('preset: dispatcher registers exactly the two meta-tools (#51)', () => {
+bootTest('preset: dispatcher registers exactly the two meta-tools (#51)', () => {
   const definitions = boot({ preset: 'dispatcher' })
   assert.deepEqual(definitions.map((def) => def.name), [DISPATCHER_NAME, HELP_NAME])
 })
 
-test('the dispatcher surface is much smaller than full', () => {
+bootTest('the dispatcher surface is much smaller than full', () => {
   const full = wireBytes(boot())
   const dispatcher = wireBytes(boot({ preset: 'dispatcher' }))
   assert.ok(dispatcher < full / 5, `dispatcher ${dispatcher} B must be well under full ${full} B`)
