@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, realpath, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { delimiter, join } from 'node:path'
 import test from 'node:test'
@@ -7,7 +7,9 @@ import test from 'node:test'
 import {
   clearLatestCache,
   createRegistryUserconfig,
+  findDshCliEntry,
   getStatus,
+  installExact,
   isNewerVersion,
   latestVersion,
   packumentLatest,
@@ -178,4 +180,31 @@ test('getStatus compares the manifest against the registry packument', async () 
     assert.equal(status.latestCheckFailed, false)
     assert.equal(status.updateAvailable, true)
   })
+})
+
+// #44 — global installs expose dsh through a symlink chain.
+test('findDshCliEntry resolves a symlinked global dsh entry (#44)', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'dsh-cli-test-'))
+  try {
+    const pkg = join(dir, 'pkg')
+    await mkdir(join(pkg, 'lib'), { recursive: true })
+    await writeFile(join(pkg, 'package.json'), JSON.stringify({ name: '@deepseek-ai/dsh', bin: { dsh: 'lib/bin.js' } }))
+    await writeFile(join(pkg, 'lib', 'bin.js'), '#!/usr/bin/env node\n')
+    await mkdir(join(dir, 'bin'))
+    const link = join(dir, 'bin', 'dsh')
+    const realBin = await realpath(join(pkg, 'lib', 'bin.js'))
+    await symlink(join(pkg, 'lib', 'bin.js'), link)
+    assert.equal(findDshCliEntry(link), realBin)
+    assert.equal(findDshCliEntry(join(pkg, 'lib', 'bin.js')), realBin)
+    assert.equal(findDshCliEntry(join(dir, 'missing-dsh')), undefined)
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
+})
+
+test('installExact explains the manual command when the CLI is missing (#44)', async () => {
+  await assert.rejects(
+    installExact({ profileName: 'web', profileDir: tmpdir() }, 'https://example.invalid/pkg.tgz', {}),
+    /could not locate the dsh CLI.*dsh plugin --profile web add https:\/\/example\.invalid\/pkg\.tgz/,
+  )
 })
