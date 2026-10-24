@@ -875,3 +875,17 @@ versions"). So this session built the automation rather than copying it.
    asset (asset download verified 200 for all three).
 4. Documented the fourth workflow in `README.md` (table row + generated-release
    bullet + ritual comment) and here (CI section, repository map).
+5. Verified the workflow through the running plugin and the runner: a manual
+   dispatch (run #100) reported `Using the automatic Actions token.` and
+   `Release lookup for v0.8.4: HTTP 200`, then printed the notes preview — so
+   the YAML loads, the token context is real, and no `RELEASE_TOKEN` secret is
+   needed for this repo. The create/asset path itself was exercised by the
+   backfill above with a user token; the next tag runs it with the Actions
+   token.
+6. Wrote the same pattern into the pvlb.dev wiki so every project starts from
+   one template: `vps-setup.wiki` → **DSH-Bootcamp → "Shipping: CI, tags and
+   releases"** (four-workflow table, the rules, and a copy-paste `release.yml`
+   whose notes come from `CHANGELOG.md`), plus a corrected statement on
+   `Forgejo-Actions-Runner` (the automatic token *is* available with repository
+   write; the old text claimed there was no implicit token) and a pointer in
+   `Home.md`. Wiki changes are pushed to `main`, not `master`.
