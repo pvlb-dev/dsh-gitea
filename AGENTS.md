@@ -503,6 +503,13 @@ regression gate for edits to `lib/client.js`.
   browser check.
 - A `link:` install's client bundle is served by path: changing
   `lib/client.js` and toggling the bundle is the supported reload path.
+- **A test that imports `lib/index.js` needs the DSH peer packages.** The CI
+  runner installs the package without a profile, so `@deepseek-ai/schemastery`
+  and friends are absent and the import throws `ERR_MODULE_NOT_FOUND`. Such
+  tests must guard the import and `skip` instead of failing the release
+  pipeline (`test/tool-surface.test.mjs` does this, and the resolver-level
+  `test/selection.test.mjs` still gates the preset table there). `npm run check`
+  inside a dev checkout has the peers through `dev:link`, so it does run them.
 
 ## Common failures
 
@@ -931,3 +938,12 @@ experiments; the split was by risk, not by "feature vs experiment".
    `0.8.5`; #50 (lazy tool discovery) is deferred until the #51 dispatcher
    spike reports, and #51 lives on `experiment/dispatcher` — experiment branches
    are never tagged or published.
+7. The first `v0.8.5` tag run failed in **CI, not in the plugin**: `publish.yml`
+   and `publish-npmjs.yml` died on `test/tool-surface.test.mjs` importing
+   `lib/index.js` on a runner without the DSH peers. The test now guards that
+   import and skips with a message when the peers are absent, so the *resolver*
+   checks still gate CI and the *boot* checks run wherever the peers exist. The
+   tag was then moved: the release page (which pointed at a registry package that
+   never published) and the tag were deleted, the fix was committed on `master`,
+   and `v0.8.5` was re-tagged on the fixed commit. Lesson: anything that imports
+   `lib/index.js` is a profile-only test.
