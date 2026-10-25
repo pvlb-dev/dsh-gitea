@@ -11,6 +11,10 @@ Main repo on [pvlb.dev/dsh-plugins/dsh-gitea](https://git.pvlb.dev/dsh-plugins/d
 
 [Install](#install) · [Configure](#configure) · [The toolset](#the-toolset) · [Safety](#safety-by-default) · [Development](#development) · [npm](https://www.npmjs.com/package/dsh-gitea)
 
+<img src="assets/screenshots/git-sidebar-drawer.jpg" alt="The Git drawer: repository link, branch, sync state, changes and recent commits" width="420">
+
+*The Git drawer — repository link, branch, sync state, changes and recent commits.*
+
 </div>
 
 ---
@@ -625,7 +629,7 @@ Four Forgejo Actions workflows in `.forgejo/workflows/`:
   the public publish.
 - `package.json` is public (`publishConfig.access: public`), so both jobs
   publish the same tarball; `files` keeps the package to `lib/`, `assets/`,
-  `cordis.patch.yml`, `README.md` and `LICENSE`.
+  `cordis.patch.yml`, `README.md`, `README.zh.md` and `LICENSE`.
 - No `pull_request` trigger on purpose: the shared runner gives job containers
   the host's rootless Docker socket, so only maintainer-controlled events may
   execute a workflow.
@@ -649,10 +653,10 @@ npm stage approve <stage-id>
 
 Versioning:
 
-- Current fork version `0.8.4`, tag `v0.8.4`; earlier builds used
+- Current fork version `0.8.8`, tag `v0.8.8`; earlier builds used
   `<upstream base>-dsh.<n>` (for example `0.7.40-dsh.7`), hotfixes may use
-  `0.8.4-dsh.<n>`. Tag every state that is live on the server.
-- Rollback: `git checkout v0.8.4`, toggle the bundle off and on, hard-refresh.
+  `0.8.8-dsh.<n>`. Tag every state that is live on the server.
+- Rollback: `git checkout v0.8.8`, toggle the bundle off and on, hard-refresh.
 - `CHANGELOG.md` gets a fork entry per release; upstream entries stay intact.
 - Keep the `peerDependencies` DSH range in step with the Harness prerelease
   line (it currently names `>=0.1.7-rc.2 <0.2.0-0`, `>=0.2.0-rc.1 <0.3.0-0` and
@@ -687,6 +691,8 @@ Updater:
 | `.forgejo/workflows/` | `ci.yml` (push checks), `publish.yml` (tag → Forgejo registry) and `publish-npmjs.yml` (tag → npmjs) |
 | `scripts/` | `dev-link-dsh.mjs` (`link:` bootstrap) and `leak-scan.mjs` (hygiene gate) |
 | `test/*.test.mjs` | The fork's regression suite (`npm test`) |
+| `assets/screenshots/` | README screenshot of the Git drawer (#63) |
+| `README.zh.md` | Chinese translation of this README, linked from both headers |
 | `AGENTS.md` | Deep operational notes: DSH slot matrix, settings contract, install/reload runbooks, failure table |
 
 ## License

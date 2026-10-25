@@ -23,6 +23,17 @@
 - Tests: `test/repo-link.test.mjs` covers the remote forms, the scheme rules,
   the config fallback, the hide switch and the client rendering contract.
 
+### Documentation
+
+- **The README is bilingual again.** `README.zh.md` is a full Chinese
+  translation of the English README (same structure, tables and tool
+  reference), linked as `English | 中文` from both headers. Upstream had
+  `README.zh.md`/`README.ru.md`; the fork had dropped them.
+- **The Git drawer screenshot is the README hero**
+  (`assets/screenshots/git-sidebar-drawer.jpg`), showing the repository link
+  from #63. The screenshot ships in the tarball, and `README.zh.md` joins
+  `package.json → files`.
+
 ## [0.8.8] - 2026-10-25
 
 ### The Host owns the preset list

@@ -533,3 +533,10 @@ schema breakage; the only real risk is that `lib/client.js` is generated output.
    test-phase policy. Live visual verification (drawer header, settings select)
    still needs the operator: HMR covers the Host half, the client bundle needs
    a toggle/restart plus a hard refresh.
+7. Docs follow-up on the same branch: the operator's web-edit added
+   `English | [中文](README.zh.md)`, so `README.zh.md` is a full translation of
+   the (now longer) English README rather than the stale upstream 334-line one;
+   `package.json → files` ships it. The operator's screenshot became the README
+   hero (`assets/screenshots/git-sidebar-drawer.jpg`), showing the #63 link in
+   the drawer header. Upstream's `README.ru.md` was not restored — no
+   maintained Russian translation exists on the fork.
