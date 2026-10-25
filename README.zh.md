@@ -20,7 +20,8 @@
 
 `dsh-gitea` 把 DeepSeek Harness 会话连接到你自己托管的 Gitea 或 Forgejo
 实例：agent 获得 96 个 schema 显式声明的一等工具，覆盖 issue、pull request、
-评审、CI、release 和仓库；你则在会话头部获得一个 **设置 → Gitea** 页面和一个
+评审、CI、release 和仓库（默认通过 2 个 `dispatcher` 元工具按需提供每个操作
+的 schema）；你则在会话头部获得一个 **设置 → Gitea** 页面和一个
 **Git 状态徽标**。
 它不从网页抓取任何内容 —— 每次调用都是通过 REST API 的 typed 工具，token 在
 调用时从 DSH 凭据中解析。读 PR、评审、rebase、盯 CI、打 tag、顺手提交后续
@@ -149,13 +150,15 @@ DSH 的凭据存储会在文件变化时重新加载，并在每次调用时解�
 ### 工具面 —— 减小请求载荷
 
 每个已注册工具的 schema 都会绑定进每一次请求，所以插件提供了预设开关。
-默认是 `full`（全部 96 个规范工具）；如果某个工作区只提 issue 或只评审 PR，
-可以收窄。
+**默认是 `dispatcher`**（自 0.8.9 起）：两个元工具让全部 96 个操作保持可达，
+而常驻载荷约 8.5 KB 而非约 60 KB。想把这 96 个工具当作一等函数调用时，在配置
+或设置下拉框里选 `preset: full`；如果某个工作区只提 issue 或只评审 PR，可以
+再收窄。
 
 ```yaml
 - id: dsh-gitea
   config:
-    preset: core        # core | issues | prs | repos | ops | dispatcher | full | none | custom
+    preset: dispatcher  # dispatcher（默认）| core | issues | prs | repos | ops | full | none | custom
     tools: []           # glob 允许列表；非空时取代预设
     excludeTools: []    # 在预设/允许列表之后移除的模式
     legacyAliases: false
@@ -163,13 +166,13 @@ DSH 的凭据存储会在文件变化时重新加载，并在每次调用时解�
 
 | 预设 | 工具数 | Schema 字节 | ≈ Token 数 |
 |:--|--:|--:|--:|
-| `full`（默认） | 96 | 65,159 | ~17.6k |
+| `dispatcher`（默认） | 2 | 8,973 | ~2.4k |
+| `full` | 96 | 65,159 | ~17.6k |
 | `core` | 15 | 11,640 | ~3.1k |
 | `issues` | 22 | 15,586 | ~4.2k |
 | `prs` | 27 | 17,480 | ~4.7k |
 | `repos` | 17 | 12,026 | ~3.3k |
 | `ops` | 30 | 20,067 | ~5.4k |
-| `dispatcher` | 2 | 8,973 | ~2.4k |
 | `none` | 0 | 0 | 0 |
 | `full` + `legacyAliases` | 133 | 107,157 | ~29k |
 
@@ -180,9 +183,12 @@ DSH 的凭据存储会在文件变化时重新加载，并在每次调用时解�
   调用别名仍然可用。
 - 保存不同的工具面会立即重新注册工具（无需重启）。`preset: none` 用于不应
   让 agent 看到 Gitea 工具的工作区。
-- `dispatcher` 是最小的工具面：两个元工具，`gitea { operation, args }` 和
-  `gitea_help { operation }`（以工具结果返回某个操作的 JSON Schema）。注册表
-  是**稳定**的 —— 不做动态注册 —— 因此请求前缀可缓存，同时每个操作仍然可达。
+- `dispatcher` 在 0.8.6–0.8.8 是可选预设，**自 0.8.9 起成为默认**。两个元
+  工具，`gitea { operation, args }` 和 `gitea_help { operation }`（以工具结果
+  返回某个操作的 JSON Schema）。注册表是**稳定**的 —— 不做动态注册 —— 因此
+  请求前缀可缓存，同时每个操作仍然可达；`preset: full` 一行即可换回类型化
+  工具面。已经保存过预设的配置会保留自己的值，所以这个默认值只影响从未选择
+  过预设的安装。
   代价是实测的，不是理论值：在五个真实分诊任务上（2026-10），每一步花费
   41.1k token 而非 58.2k（−29%），但 agent 需要多 30% 的步骤（help 往返和
   参数名重试），所以**总**量只低约 8%，按成本加权（缓存命中 ≈ 0.26× 新请求）
@@ -212,8 +218,9 @@ DSH 的凭据存储会在文件变化时重新加载，并在每次调用时解�
 
 ## 工具集
 
-**96 个一等工具**（`full` 预设全部公开）外加自 0.8.5 起需显式开启的 **37 个
-兼容别名**。仓库级工具接受可选的 `owner`/`repo`（回退顺序：
+**96 个一等工具**（`full` 预设全部公开；默认的 `dispatcher` 预设通过两个元工具
+也能触达全部 96 个）外加自 0.8.5 起需显式开启的 **37 个兼容别名**。仓库级工具
+接受可选的 `owner`/`repo`（回退顺序：
 `defaultOwner`/`defaultRepo`，然后是会话的 git origin），每个工具还接受
 `instance` 选择器以支持多实例。破坏性工具需要 `confirm: true`，风险较高的
 助手先试运行，因此 agent 在写入前可以先预览：不会误合并、误删或误推送。

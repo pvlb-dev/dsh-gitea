@@ -150,8 +150,14 @@ bootTest('preset: dispatcher registers exactly the two meta-tools (#51)', () => 
   assert.deepEqual(definitions.map((def) => def.name), [DISPATCHER_NAME, HELP_NAME])
 })
 
+bootTest('preset: dispatcher is the Config default (0.8.9)', () => {
+  // A default boot advertises the dispatcher surface; `preset: full` is the
+  // documented way back to the typed tools.
+  assert.deepEqual(boot().map((def) => def.name), [DISPATCHER_NAME, HELP_NAME])
+})
+
 bootTest('the dispatcher surface is much smaller than full', () => {
-  const full = wireBytes(boot())
+  const full = wireBytes(boot({ preset: 'full' }))
   const dispatcher = wireBytes(boot({ preset: 'dispatcher' }))
   assert.ok(dispatcher < full / 5, `dispatcher ${dispatcher} B must be well under full ${full} B`)
   // Both are recorded on the issue; print them so a re-run is self-documenting.

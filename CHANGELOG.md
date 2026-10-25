@@ -2,6 +2,28 @@
 
 ## [Unreleased]
 
+### The tool surface defaults to `dispatcher`
+
+- **New installs get the two-tool surface.** `Config.preset` now defaults to
+  `dispatcher` (`DEFAULT_PRESET` in `lib/selection.js`) instead of `full`:
+  `gitea { operation, args }` plus `gitea_help { operation }` keep all 96
+  operations reachable at ~8.5 KB of tool payload instead of ~60 KB. This is a
+  deliberate default change, not a fix — `preset: full` (config or settings
+  dropdown) restores the 96 typed tools, and a config that already saved a
+  preset keeps its value, so the flip only reaches installs that never chose
+  one.
+- The settings hint, the form's fallback value and the Host's initial
+  `toolState` all follow the one constant, so a payload without `preset` can no
+  longer render `full` and save it back over the new default. The stale
+  "experiment branch only" note in `lib/dispatcher.js` is gone.
+- README (EN/ZH/RU) documents the new default next to the measured trade-off
+  from #51: per-step payload −29 %, +30 % steps, total ~8 % lower and
+  cost-weighted level — a wash on short tasks, a modest win past ~10 steps.
+- Tests: a default boot registers exactly `gitea` + `gitea_help`;
+  `preset: full` still produces the canonical 96 tools in `TOOL_DEFS` order; the
+  Host schema default, the client fallback and `DEFAULT_PRESET` are asserted to
+  agree.
+
 ### #63 — the Git sidebar links to its repository
 
 - **The Git drawer header now links to the repository.** The logo and the

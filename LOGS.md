@@ -554,3 +554,27 @@ schema breakage; the only real risk is that `lib/client.js` is generated output.
    GitHub mirror renders them. The header `<div align="center">` was closed
    after the table of contents (the operator's edit left it spanning the prose
    sections) and the screenshot got its own centered block. No release.
+10. The operator asked whether the `dispatcher` preset should become the
+    standard config, with two live cost-detail screenshots (a local
+    LinA/RAT session: 394 calls, gitea 4.7 % of spend; the whale-noises
+    session here: gitea 15 % + bash+gitea 8.2 %) and the "Tools updated · 2
+    added, 144 removed" toast from an upgraded chat. Answer: yes, with
+    conditions. Measured before flipping: the full surface is 60.6 KB of tool
+    payload, the dispatcher description (catalog of all 96 operations) is
+    8.5 KB — 7.3× smaller — but #51 already measured the other half of the
+    trade-off (+30 % steps, total ~8 % lower, cost-weighted level). So the
+    default is justified by surface footprint and tool-choice noise, not by a
+    token win, and `preset: full` stays a documented one-liner. `Config.preset`
+    now defaults to `DEFAULT_PRESET` (`dispatcher`) in `lib/selection.js`; the
+    client form fallback and the Host's initial `toolState` follow it, so a
+    payload without `preset` cannot render `full` and save it back. The stale
+    "EXPERIMENT BRANCH ONLY" header in `lib/dispatcher.js` now records the real
+    history (0.8.6 opt-in → 0.8.9 default). Tests: default boot is exactly
+    `gitea` + `gitea_help`, `preset: full` keeps the canonical 96 in
+    `TOOL_DEFS` order, and the schema default / client fallback / constant are
+    asserted to agree — 219 tests. Note for the operator: this profile's patch
+    already pins `preset: dispatcher` (saved through the form at 12:56 UTC), so
+    the flip mainly matters for installs that never saved one; and the running
+    Host currently advertises the 96 canonical tools *plus* the 2 meta-tools,
+    a hot-reapply artifact that a bundle toggle collapses to the configured
+    surface. Still no tag.

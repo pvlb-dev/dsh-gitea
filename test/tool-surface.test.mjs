@@ -61,8 +61,17 @@ const boot = (config = {}) => {
 
 const canonical = TOOL_DEFS.map((def) => def.name)
 
-bootTest('default boot advertises the canonical surface and no aliases (#48)', () => {
+bootTest('default boot advertises the dispatcher surface (0.8.9)', () => {
+  // The Config default is `preset: dispatcher` since 0.8.9; the typed 96-tool
+  // surface now needs an explicit `preset: full` (see dispatcher.test.mjs).
   const names = boot()
+  assert.equal(names.length, 2)
+  assert.deepEqual(names, ['gitea', 'gitea_help'], 'two meta-tools, stable names')
+  assert.ok(!names.includes('gitea_issue_set_labels'), 'deprecated alias not advertised')
+})
+
+bootTest('preset: full advertises the canonical surface and no aliases (#48)', () => {
+  const names = boot({ preset: 'full' })
   assert.equal(names.length, 96)
   assert.deepEqual(names, canonical, 'full preset keeps TOOL_DEFS order')
   assert.ok(!names.includes('gitea_issue_set_labels'), 'deprecated alias not advertised')
@@ -71,7 +80,7 @@ bootTest('default boot advertises the canonical surface and no aliases (#48)', (
 })
 
 bootTest('legacyAliases: true restores the 0.8.4 name set (#48)', () => {
-  const names = boot({ legacyAliases: true })
+  const names = boot({ preset: 'full', legacyAliases: true })
   assert.equal(names.length, 133)
   assert.ok(names.includes('gitea_issue_set_labels'))
   assert.ok(names.includes('gitea_repo_branches'))

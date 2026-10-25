@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url'
 
 import { LEGACY_MAP } from '../lib/handlers.js'
 import {
+  DEFAULT_PRESET,
   PRESETS,
   PRESET_NAMES,
   aliasesForSelection,
@@ -147,8 +148,8 @@ test('describeSelection renders a one-line summary', () => {
 // Wiring: the Host must actually use the resolver, and the Config fields must
 // stay volatile so they reach the settings form (see AGENTS.md).
 test('host entry wires the tool surface to the config schema', () => {
-  assert.match(hostEntry, /import \{ resolveSelection, aliasesForSelection, PRESET_NAMES \} from '\.\/selection\.js'/)
-  assert.match(hostEntry, /preset: z\.string\(\)\.default\('full'\)[\s\S]{0,200}\.volatile\(\)/)
+  assert.match(hostEntry, /import \{ resolveSelection, aliasesForSelection, PRESET_NAMES, DEFAULT_PRESET \} from '\.\/selection\.js'/)
+  assert.match(hostEntry, /preset: z\.string\(\)\.default\(DEFAULT_PRESET\)[\s\S]{0,500}\.volatile\(\)/)
   assert.match(hostEntry, /tools: z\.array\(z\.string\(\)\)\.default\(\[\]\)/)
   assert.match(hostEntry, /excludeTools: z\.array\(z\.string\(\)\)\.default\(\[\]\)/)
   assert.match(hostEntry, /legacyAliases: z\.boolean\(\)\.default\(false\)/)
@@ -180,6 +181,20 @@ test('the Host sends the preset list it will accept (0.8.8)', () => {
   assert.match(client, /const \[presetOptions, setPresetOptions\] = React\.useState\(PRESET_OPTIONS\)/)
   assert.match(client, /setPresetOptions\(data\.presets\)/)
   assert.match(client, /\n          presetOptions,/)
+})
+
+test('dispatcher is the default preset in the Host, the client and the resolver table (0.8.9)', () => {
+  // One default, three places: the exported constant, the Config schema default
+  // (checked above) and the client form fallback used when a Host payload omits
+  // `preset`. The resolver keeps `full` as its own library default on purpose —
+  // see DEFAULT_PRESET in lib/selection.js for why.
+  assert.equal(DEFAULT_PRESET, 'dispatcher')
+  assert.ok(PRESET_NAMES.includes(DEFAULT_PRESET), 'the default must be an accepted preset')
+  assert.match(client, /preset: typeof cfg\.preset === 'string' && cfg\.preset \? cfg\.preset : 'dispatcher'/)
+  assert.match(client, /dispatcher \(default: 2 meta-tools covering all 96 operations\)/)
+  // A dispatcher selection resolves to no canonical tools; the surface is the
+  // two meta-tools registered by lib/index.js instead.
+  assert.deepEqual(resolveSelection({ preset: 'dispatcher', available }).selected, [])
 })
 
 test('settings form exposes the surface in both locales', () => {

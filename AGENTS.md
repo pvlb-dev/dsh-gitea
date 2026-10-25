@@ -99,8 +99,9 @@ The tracker holds the repros and acceptance notes; this table is the index.
 
 - A DSH **profile bundle + plugin** that connects the Harness to a self-hosted
   Gitea/Forgejo instance: 96 first-class agent tools, a preset-switchable tool
-  surface (`preset`/`tools`/`excludeTools`, #49) including the opt-in two-tool
-  `dispatcher` surface (#51), 37 compatibility aliases that are opt-in since
+  surface (`preset`/`tools`/`excludeTools`, #49) whose **default since 0.8.9 is
+  the two-tool `dispatcher`** (#51 — `preset: full` gets the 96 typed tools
+  back), 37 compatibility aliases that are opt-in since
   0.8.5 (`legacyAliases`, #48), HTTP routes, a Git status chip in the session
   header, and a settings page.
 - This checkout is our **deployment fork** of the upstream public repo
@@ -213,9 +214,11 @@ The tracker holds the repros and acceptance notes; this table is the index.
   tool-surface presets + opt-in aliases, 0.8.4 staged npmjs publishing, 0.8.3
   publish config, 0.8.2 README + peer-range). Earlier builds used
   `<upstream base>-dsh.<n>`; hotfixes can use `0.8.8-dsh.<n>` if needed.
-- **Next: `0.8.9`, not cut.** #63 (Git-sidebar repository link) is the first
-  entry under `## [Unreleased]`; bundle a few issues before tagging — see
-  "Bundled releases and the on-server test phase".
+- **Next: `0.8.9`, not cut.** Unreleased entries: #63 (Git-sidebar repository
+  link), the trilingual README, and **`dispatcher` as the Config default**
+  (0.8.9 flips `DEFAULT_PRESET` in `lib/selection.js`; `preset: full` is the
+  documented escape and configs that saved a preset keep it). Bundle a few
+  issues before tagging — see "Bundled releases and the on-server test phase".
 - Tag every state that is live on the server as `v<version>` (for example
   `v0.8.1`). Rollback = `git checkout <tag>`, toggle the bundle off/on,
   hard-refresh.
@@ -299,7 +302,7 @@ The tracker holds the repros and acceptance notes; this table is the index.
   bundle is worth shipping (a handful of issues, or one area finished). Reserve
   same-day tags for live breakage.
 - **Test phase before a tag, on this server, no build:**
-  1. `npm run check` — the full gate (tests, leak scan, `node --check`; 216
+  1. `npm run check` — the full gate (tests, leak scan, `node --check`; 219
      tests, ~15 s on this box). Run it after each change; it is the CI gate and
      it ships no artifact.
   2. Live check in the running GUI. Host-half edits are hot through the `hmr`
@@ -360,8 +363,8 @@ The tracker holds the repros and acceptance notes; this table is the index.
 | `lib/routes.js` | `/dsh-gitea/config`, `/events`, `/git-status`, `/git-graph`, `/sse`, `/hub`, `/release-assistant`, webhook |
 | `lib/routes-hub.js` | Interactive Hub action dispatcher used by `POST /dsh-gitea/hub` |
 | `lib/http-guard.js` | Host/Origin/CSRF fence + DSH Connection authentication for custom routes |
-| `lib/selection.js` | Tool-surface presets, glob patterns and alias filtering (#48/#49); pure module shared by `lib/index.js` and the tests |
-| `lib/dispatcher.js` | Opt-in `preset: dispatcher` (#51): catalog, per-operation help and argument validation, all derived from `TOOL_DEFS` |
+| `lib/selection.js` | Tool-surface presets, glob patterns and alias filtering (#48/#49), plus `DEFAULT_PRESET` (0.8.9: `dispatcher`); pure module shared by `lib/index.js` and the tests |
+| `lib/dispatcher.js` | `preset: dispatcher` (#51) — the default surface since 0.8.9: catalog, per-operation help and argument validation, all derived from `TOOL_DEFS` |
 | `lib/gitea-client.js` | Gitea REST client (cache, ETags, retry, timeouts) |
 | `lib/plugin-updater.js` | One-click updater: Forgejo registry packument, unscoped install, loopback fence + `updates` switch |
 | `lib/handlers.js`, `lib/handlers/*` | Tool implementations; `lib/tool-defs.js`, `lib/tool-defs/*` hold schemas |
@@ -627,6 +630,12 @@ regression gate for edits to `lib/client.js`.
   through the profile/config document.
 - `plugins.item` remains registered for older DSH cores; on 0.2.x it is only a
   legacy compatibility card and may appear in the Plugins page's official group.
+- **The `dispatcher` default removes name-level discovery.** With two meta-tools
+  an agent no longer reads `gitea_pr_merge` off its tool list; it finds it in
+  the `gitea` description catalog and fetches the schema with `gitea_help`.
+  That is the measured trade-off (README, "Tool surface"), and `preset: full`
+  is the one-line way back. Do not "fix" a confused agent by re-adding
+  individual tools to the default surface.
 - Browser-visible verification still needs a human or a browser-capable agent.
 
 ## Session history
@@ -657,5 +666,5 @@ and provenance behind any change. One line per session, oldest first.
 | 2026-10-25 | 0.8.6 | Dispatcher preset + issue metadata (#51/#52) |
 | 2026-10-25 | 0.8.7 | Preset dropdown + wiki rename + flavor render/detection (#55/#56/#57) |
 | 2026-10-25 | 0.8.8 | Host-authoritative preset list (stale-Host skew) |
-| 2026-10-25 | — (unreleased) | #63 Git-sidebar repository link; bundled-release + on-server test-phase policy; trilingual README (EN/ZH/RU) + drawer screenshot |
+| 2026-10-25 | — (unreleased) | #63 Git-sidebar repository link; bundled-release + on-server test-phase policy; trilingual README (EN/ZH/RU) + drawer screenshot; `dispatcher` becomes the default preset (`DEFAULT_PRESET`) |
 

@@ -20,7 +20,8 @@ Main repo on [pvlb.dev/dsh-plugins/dsh-gitea](https://git.pvlb.dev/dsh-plugins/d
 
 `dsh-gitea` connects a DeepSeek Harness session to your own Gitea or Forgejo
 instance: the agent gets 96 first-class, schema-declared tools for issues, pull
-requests, reviews, CI, releases and repositories, and you get a
+requests, reviews, CI, releases and repositories (by default through the 2-tool
+`dispatcher`, which serves each operation's schema on demand), and you get a
 **Settings → Gitea** page plus a **Git status chip** in the session header.
 Nothing is scraped from a web page — every call is a typed tool over the REST
 API, with your token resolved from DSH credentials at call time.
@@ -164,13 +165,16 @@ fall back to your usual repository.
 ### Tool surface — keep the payload small
 
 Every registered tool's schema is bound into every request, so the plugin has a
-preset switch. The default is `full` (all 96 canonical tools); narrow it when a
-workspace only files issues or only reviews pull requests.
+preset switch. **The default is `dispatcher`** (since 0.8.9): two meta-tools that
+keep all 96 operations reachable while the always-on payload stays ~8.5 KB
+instead of ~60 KB. Set `preset: full` — in the config or the settings dropdown —
+when you want the 96 typed tools as first-class functions, and narrow further
+when a workspace only files issues or only reviews pull requests.
 
 ```yaml
 - id: dsh-gitea
   config:
-    preset: core        # core | issues | prs | repos | ops | dispatcher | full | none | custom
+    preset: dispatcher  # dispatcher (default) | core | issues | prs | repos | ops | full | none | custom
     tools: []           # glob allowlist; non-empty replaces the preset
     excludeTools: []    # patterns removed after the preset/allowlist
     legacyAliases: false
@@ -178,13 +182,13 @@ workspace only files issues or only reviews pull requests.
 
 | Preset | Tools | Schema bytes | ≈ tokens |
 |:--|--:|--:|--:|
-| `full` (default) | 96 | 65,159 | ~17.6k |
+| `dispatcher` (default) | 2 | 8,973 | ~2.4k |
+| `full` | 96 | 65,159 | ~17.6k |
 | `core` | 15 | 11,640 | ~3.1k |
 | `issues` | 22 | 15,586 | ~4.2k |
 | `prs` | 27 | 17,480 | ~4.7k |
 | `repos` | 17 | 12,026 | ~3.3k |
 | `ops` | 30 | 20,067 | ~5.4k |
-| `dispatcher` | 2 | 8,973 | ~2.4k |
 | `none` | 0 | 0 | 0 |
 | `full` + `legacyAliases` | 133 | 107,157 | ~29k |
 
@@ -196,10 +200,13 @@ workspace only files issues or only reviews pull requests.
   payload; an alias call still resolves even when it is not advertised.
 - Saving a different surface re-registers the tools immediately (no restart).
   `preset: none` is for workspaces where the agent should not see Gitea tools.
-- `dispatcher` is the smallest surface: two meta-tools, `gitea { operation,
-  args }` and `gitea_help { operation }` (which returns one operation's JSON
-  Schema as a tool result). The registry is **stable** — no dynamic registration
-  — so the request prefix stays cacheable, and every operation is still reachable.
+- `dispatcher` was the opt-in preset in 0.8.6–0.8.8 and is the **default since
+  0.8.9**. Two meta-tools, `gitea { operation, args }` and `gitea_help {
+  operation }` (which returns one operation's JSON Schema as a tool result). The
+  registry is **stable** — no dynamic registration — so the request prefix stays
+  cacheable, and every operation is still reachable; `preset: full` swaps back to
+  the typed surface in one line. Configs that already saved a preset keep their
+  value, so the flip only reaches installs that never chose one.
   The trade-off is measured, not theoretical: on five real triage tasks (2026-10)
   a step cost 41.1k tokens instead of 58.2k (−29 %), but the agents needed
   +30 % steps (help round trips and argument-name retries), so the **total** was
@@ -231,9 +238,10 @@ workspace only files issues or only reviews pull requests.
 
 ## The toolset
 
-**96 first-class tools** (all advertised by the `full` preset) plus **37
-compatibility aliases** that are opt-in since 0.8.5. Repository-scoped tools take
-optional `owner`/`repo` (falling back to
+**96 first-class tools** (all advertised by the `full` preset — the default
+`dispatcher` preset reaches every one of them through its two meta-tools) plus
+**37 compatibility aliases** that are opt-in since 0.8.5. Repository-scoped tools
+take optional `owner`/`repo` (falling back to
 `defaultOwner`/`defaultRepo`, then to the session's git origin), and every
 tool accepts an `instance` selector for multi-instance setups. Destructive
 tools require `confirm: true` and the riskier helpers are dry-run-first, so an
