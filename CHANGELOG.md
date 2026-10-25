@@ -4,9 +4,10 @@
 
 ### #63 — the Git sidebar links to its repository
 
-- **The Git drawer header now has a repository link.** A small Gitea or Forgejo
-  logo sits next to the branch badge and opens the repository's web page in a
-  new tab (`target="_blank"`, `rel="noopener noreferrer"`).
+- **The Git drawer header now links to the repository.** The logo and the
+  repository name form one link, first in the header row —
+  `[logo repo-name][branch]` — and open the repository's web page in a new tab
+  (`target="_blank"`, `rel="noopener noreferrer"`).
 - The URL is derived from the checkout's **`origin` remote** — SSH
   (`ssh://git@host/owner/repo.git`), scp-like (`git@host:owner/repo.git`) and
   HTTPS forms, with `.git`, the default SSH port and deeper paths removed — so

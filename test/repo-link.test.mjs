@@ -93,8 +93,22 @@ test('#63: the client renders the link in the drawer header with both logos', ()
   assert.match(client, /gitea: 'data:image\/svg\+xml;base64,/)
   assert.match(client, /className: 'dgt-repo-link'/)
   assert.match(client, /rel: 'noopener noreferrer'/)
-  assert.match(client, /snap\.repoLink && snap\.repoLink\.url/)
+  assert.match(client, /const repoHref = snap && snap\.repoLink && snap\.repoLink\.url/)
   assert.doesNotMatch(client, /dangerouslySetInnerHTML/)
+
+  // Operator layout (turn 2): the logo and the repository name are ONE link,
+  // first in the header row — [logo repo-name][branch] — not an icon parked
+  // after the branch badge.
+  const anchor = client.indexOf("className: 'dgt-repo-link'")
+  const logo = client.indexOf("React.createElement('img', { src: repoIcon", anchor)
+  const titleNode = client.indexOf("React.createElement('h3', { className: 'dgt-drawer-title' }", logo)
+  const branch = client.indexOf("dgt-drawer-branch-badge' }", titleNode)
+  assert.ok(anchor > 0, 'repo link anchor is rendered')
+  assert.ok(logo > anchor, 'logo is inside the anchor')
+  assert.ok(titleNode > logo, 'repo name follows the logo inside the anchor')
+  assert.ok(branch > titleNode, 'branch badge follows the [logo repo-name] link')
+  // Without a usable remote the title still renders as a plain heading.
+  assert.match(client, /: React\.createElement\('h3', \{ className: 'dgt-drawer-title' \}/)
 })
 
 test('#63: the icon is a volatile, saved setting with a Forgejo default', () => {

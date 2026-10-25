@@ -504,9 +504,11 @@ produced an option the Host rejects.
 
 ## Session log — #63 repository link, bundled releases (unreleased, 2026-10-25)
 
-Issue #63 asked for a clickable Gitea/Forgejo logo next to the branch badge in
-the Git drawer. Assessment: small UI feature, ~2–3 h, no API or schema
-breakage; the only real risk is that `lib/client.js` is generated output.
+Issue #63 asked for a clickable Gitea/Forgejo logo in the Git drawer. Placement
+changed after the operator's first live look: the combined *logo + repository
+name* link is the first item in the header row (`[logo repo-name][branch]`),
+not an icon after the branch badge. Assessment: small UI feature, no API or
+schema breakage; the only real risk is that `lib/client.js` is generated output.
 
 1. `lib/repo-link.js` (new): `parseRemoteWebUrl` covers `ssh://`, scp-like
    `git@host:owner/repo.git` and HTTPS origins, dropping `.git`, `:22` and
@@ -519,9 +521,9 @@ breakage; the only real risk is that `lib/client.js` is generated output.
    `defaultOwner`/`defaultRepo` — on this box those are `dsh`/`vps-setup`,
    while the checkout's origin is `dsh-plugins/dsh-gitea`.
 3. `lib/client.js`: logo data URIs (`assets/logos/` holds sources + attribution;
-   Forgejo is CC BY-SA 4.0), the anchor after the branch badge, the settings
-   select and both locale dictionaries. Data URI `<img>` keeps the Forgejo
-   SVG's internal `<style>` out of the app DOM.
+   Forgejo is CC BY-SA 4.0), the `[logo repo-name]` anchor first in the header
+   row, the settings select and both locale dictionaries. Data URI `<img>`
+   keeps the Forgejo SVG's internal `<style>` out of the app DOM.
 4. `lib/index.js`: `repoLinkIcon` volatile Config field, Forgejo default.
 5. `test/repo-link.test.mjs`: 7 tests; `npm run check` is 216 tests, leak scan
    clean.
