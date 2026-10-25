@@ -572,9 +572,19 @@ schema breakage; the only real risk is that `lib/client.js` is generated output.
     history (0.8.6 opt-in → 0.8.9 default). Tests: default boot is exactly
     `gitea` + `gitea_help`, `preset: full` keeps the canonical 96 in
     `TOOL_DEFS` order, and the schema default / client fallback / constant are
-    asserted to agree — 219 tests. Note for the operator: this profile's patch
+    asserted to agree — 219 tests at that point. Note for the operator: this profile's patch
     already pins `preset: dispatcher` (saved through the form at 12:56 UTC), so
     the flip mainly matters for installs that never saved one; and the running
     Host currently advertises the 96 canonical tools *plus* the 2 meta-tools,
     a hot-reapply artifact that a bundle toggle collapses to the configured
     surface. Still no tag.
+11. Found while answering (10): `gitea_help` — half of the new default surface —
+    printed `Unrecognised response` plus clipped JSON instead of the schema.
+    `formatToolResult()` had no branch for the help payload `{ operation, help }`,
+    and the help tool's render passed `gitea` instead of `gitea_help`, so it fell
+    through to `describeUnknownObject()`. Filed as **#66** with the one-line repro,
+    fixed the same sitting: a `gitea_help` branch in
+    `lib/handlers/formatters.js` renders `data.help` as text, the render passes
+    `HELP_NAME`, and two tests cover it (formatter level, plus the definition
+    `apply()` registers end to end) — 221 tests, leak scan clean. Live check via
+    the running plugin after HMR. No release.

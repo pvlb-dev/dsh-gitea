@@ -77,6 +77,7 @@ Consumers mirror this table and link here.
 | `gitea_flavor` says `gitea` on a Forgejo instance | version-only heuristic; Forgejo advertises `17.0.0+gitea-1.22.0` | none; detection now probes the web UI title | #57 | fixed in 0.8.7 |
 | `gitea_issue_templates` says it reads `.gitea/ISSUE_TEMPLATE/` | tool-def text is stale; the handler prefers the bundled `assets/issue-templates/` | describe the bundled pack in docs | #47 | open |
 | `gitea_pr_comment`/`gitea_pr_line_comment` print `Unrecognised response` + raw JSON | `formatters.js` has a `gitea_issue_comment` branch but none for the PR-side names, which hit the same comments endpoint; a comment object has no top-level `name`/`title`/`login`/`number`/`path`, so `describeUnknownObject()` matches nothing | the call itself succeeds — read the id/author from the JSON | #65 | open |
+| `gitea_help` prints `Unrecognised response` + clipped JSON | `formatters.js` has no branch for the help payload `{ operation, help }`; the help tool's render passed `gitea` instead of `gitea_help` | none needed; the schema is in the JSON | #66 | fixed on `feat/63-repo-link` (0.8.9) |
 
 Fixing a tool bug = one issue, one PR, a formatter test, and a row update in
 this table — same sitting.
@@ -302,7 +303,7 @@ The tracker holds the repros and acceptance notes; this table is the index.
   bundle is worth shipping (a handful of issues, or one area finished). Reserve
   same-day tags for live breakage.
 - **Test phase before a tag, on this server, no build:**
-  1. `npm run check` — the full gate (tests, leak scan, `node --check`; 219
+  1. `npm run check` — the full gate (tests, leak scan, `node --check`; 221
      tests, ~15 s on this box). Run it after each change; it is the CI gate and
      it ships no artifact.
   2. Live check in the running GUI. Host-half edits are hot through the `hmr`
@@ -666,5 +667,5 @@ and provenance behind any change. One line per session, oldest first.
 | 2026-10-25 | 0.8.6 | Dispatcher preset + issue metadata (#51/#52) |
 | 2026-10-25 | 0.8.7 | Preset dropdown + wiki rename + flavor render/detection (#55/#56/#57) |
 | 2026-10-25 | 0.8.8 | Host-authoritative preset list (stale-Host skew) |
-| 2026-10-25 | — (unreleased) | #63 Git-sidebar repository link; bundled-release + on-server test-phase policy; trilingual README (EN/ZH/RU) + drawer screenshot; `dispatcher` becomes the default preset (`DEFAULT_PRESET`) |
+| 2026-10-25 | — (unreleased) | #63 Git-sidebar repository link; bundled-release + on-server test-phase policy; trilingual README (EN/ZH/RU) + drawer screenshot; `dispatcher` becomes the default preset (`DEFAULT_PRESET`); #66 `gitea_help` formatter fix |
 

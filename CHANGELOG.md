@@ -24,6 +24,19 @@
   Host schema default, the client fallback and `DEFAULT_PRESET` are asserted to
   agree.
 
+### #66 — `gitea_help` printed "Unrecognised response"
+
+- **The schema fetcher of the default surface now returns the schema.**
+  `formatToolResult()` had no branch for the help payload `{ operation, help }`,
+  so it fell through to `describeUnknownObject()`: every `gitea_help` call
+  answered `Unrecognised response` plus clipped JSON — the one tool an agent
+  needs to read any operation's schema on the `dispatcher` surface.
+- `lib/index.js` formats the help tool as `gitea_help` (not as the dispatcher),
+  and `lib/handlers/formatters.js` renders `data.help` as text. The error path
+  already worked (`gitea_help failed: <reason>`).
+- Tests: a formatter check and an end-to-end check through the definition
+  `apply()` registers.
+
 ### #63 — the Git sidebar links to its repository
 
 - **The Git drawer header now links to the repository.** The logo and the

@@ -163,3 +163,21 @@ bootTest('the dispatcher surface is much smaller than full', () => {
   // Both are recorded on the issue; print them so a re-run is self-documenting.
   console.log(`#51 surface bytes: full ${full} B, dispatcher ${dispatcher} B (${(full / dispatcher).toFixed(1)}x smaller)`)
 })
+
+bootTest('the registered gitea_help tool renders the schema (#66)', () => {
+  // End-to-end through the definition `apply()` registers: the render must be
+  // the help text, because that is how an agent on the default surface reads
+  // any operation's schema (#66).
+  const help = boot({ preset: 'dispatcher' }).find((def) => def.name === HELP_NAME)
+  assert.ok(help, 'the help tool is registered')
+  const rendered = help.output.render(
+    { operation: 'gitea_pr_get' },
+    { ok: true, data: { operation: 'gitea_pr_get', help: 'gitea_pr_get\n\nGet a PR.' } },
+  )
+  assert.equal(rendered[0].text, 'gitea_pr_get\n\nGet a PR.')
+  const failed = help.output.render(
+    { operation: 'gitea_nope' },
+    { ok: false, error: 'unknown operation "gitea_nope"' },
+  )
+  assert.match(failed[0].text, /^gitea_help failed: unknown operation/)
+})

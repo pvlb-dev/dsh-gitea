@@ -162,3 +162,14 @@ test('wiki metadata survives slimRecord and never becomes a bare OK (#4)', () =>
 test('failed calls still report the failure (#5 sanity)', () => {
   assert.equal(text('gitea_issue_list', { ok: false, error: 'boom' }), 'gitea_issue_list failed: boom')
 })
+
+// #66 — the dispatcher's schema fetcher fell through describeUnknownObject().
+test('gitea_help renders the operation schema, not clipped JSON (#66)', () => {
+  const help = 'gitea_pr_get\n\nGet a PR.\n\nParameters (JSON Schema):\n{"type":"object"}'
+  const out = text('gitea_help', ok({ operation: 'gitea_pr_get', help }))
+  assert.equal(out, help)
+  assert.doesNotMatch(out, /Unrecognised response/)
+  assert.equal(text('gitea_help', { ok: false, error: 'unknown operation "nope"' }), 'gitea_help failed: unknown operation "nope"')
+  // The formatter branches on the literal tool name; keep it equal to HELP_NAME.
+  assert.match(formatterSource, /name === 'gitea_help'/)
+})
