@@ -12,7 +12,12 @@ This repo lives on the pvlb.dev forge:
 the upstream plugin (branch `master`; upstream is watch-only). Before starting,
 read the bootcamp page:
 <https://git.pvlb.dev/pvlb-infra/vps-setup/wiki/DSH-Bootcamp> — repos and wikis
-are private, so read it through an SSH clone, not `web_fetch`.
+are private, so read it through an SSH clone, not `web_fetch`. Forgejo masks a
+private repo **and its wiki** as `404` (not `401`/`403`) for anonymous callers, so
+a `web_fetch` 404 on this forge means "not authenticated", not "page missing":
+confirm existence with the `gitea_*` tools, whose token reaches the same URL.
+`gitea_wiki get` still returns metadata only (#4) — the body needs
+`git clone ssh://git@git.pvlb.dev/<owner>/<repo>.wiki.git`.
 
 - Commit as `dsh <dsh@pvlb.dev>` (global, GPG-signed); push when done.
 - Every issue is labeled **at creation** with `type/*`, `area/*` and
