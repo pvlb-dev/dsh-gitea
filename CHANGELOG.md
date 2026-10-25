@@ -31,10 +31,12 @@
   Upstream had `README.zh.md`/`README.ru.md`; the fork had dropped them, and
   both were rebuilt against the current English README rather than restored
   from the 0.4-era files.
-- **The Git drawer screenshot is the README hero**
+- **The Git drawer screenshot sits after the feature list**
   (`assets/screenshots/git-sidebar-drawer.jpg`), showing the repository link
   from #63. The screenshot ships in the tarball, and `README.zh.md` /
-  `README.ru.md` join `package.json → files`.
+  `README.ru.md` join `package.json → files`. The header carries the Gitea and
+  Forgejo logos (repo-local SVGs) and flag language links in all three
+  languages.
 
 ## [0.8.8] - 2026-10-25
 

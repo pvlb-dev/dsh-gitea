@@ -1,7 +1,8 @@
 <div align="center">
 
-# 🏴 dsh-gitea
-[English](README.md) | **中文** | [Русский](README.ru.md)
+# 🏴 dsh-gitea <img src="assets/logos/gitea.svg" alt="Gitea" width="36"> <img src="assets/logos/forgejo.svg" alt="Forgejo" width="36">
+
+🇬🇧 [English](README.md) | 🇨🇳 **中文** | 🇷🇺 [Русский](README.ru.md)
 
 **Gitea/Forgejo，在你的 DeepSeek Harness 会话中驱动。**
 
@@ -10,10 +11,6 @@
 96 个一等工具 · 可按预设切换的工具面 · 设置页 · 实时 Git 状态徽标
 
 [安装](#安装) · [配置](#配置) · [工具集](#工具集) · [安全](#默认即安全) · [开发](#开发) · [npm](https://www.npmjs.com/package/dsh-gitea)
-
-<img src="assets/screenshots/git-sidebar-drawer.jpg" alt="Git 侧栏：仓库链接、分支、同步状态、变更与最近提交" width="420">
-
-*Git 侧栏 —— 仓库链接、分支、同步状态、变更与最近提交。*
 
 </div>
 
@@ -52,6 +49,14 @@ issue，全程都不用离开对话。
   deploy key、安全审计，以及可离线重放的 webhook。
 - **在仓库所在处工作。** 用于隔离分支的 Git 工作树、UI 中的提交图，以及让
   issue 和代码保持同步的 issue → 分支 → 工作树 → PR 流程。
+
+<div align="center">
+
+<img src="assets/screenshots/git-sidebar-drawer.jpg" alt="Git 侧栏：仓库链接、分支、同步状态、变更与最近提交" width="420">
+
+*Git 侧栏 —— 仓库链接、分支、同步状态、变更与最近提交。*
+
+</div>
 
 ## 环境要求
 

@@ -545,3 +545,12 @@ schema breakage; the only real risk is that `lib/client.js` is generated output.
    the `English | 中文 | Русский` switcher. Both translations and the
    screenshot ship in the tarball; `npm run check` and `npm pack --dry-run`
    were re-run after the change. No version bump, no tag.
+9. The operator edited the English README in the forge (417e1d0): Gitea and
+   Forgejo logos in the H1, flag-prefixed language links, and the drawer
+   screenshot moved from the hero to the end of the feature list. Mirrored in
+   `README.zh.md` and `README.ru.md`; two cleanups in the source edit: the
+   bare attachment URL under the H1 was dropped, and the logos use the
+   repo-local `assets/logos/*.svg` instead of forge attachment URLs so the
+   GitHub mirror renders them. The header `<div align="center">` was closed
+   after the table of contents (the operator's edit left it spanning the prose
+   sections) and the screenshot got its own centered block. No release.
