@@ -76,6 +76,7 @@ Consumers mirror this table and link here.
 | `gitea_flavor` prints `Unrecognised response` + clipped JSON | no formatter branch for the tool | none | #56 | fixed in 0.8.7 |
 | `gitea_flavor` says `gitea` on a Forgejo instance | version-only heuristic; Forgejo advertises `17.0.0+gitea-1.22.0` | none; detection now probes the web UI title | #57 | fixed in 0.8.7 |
 | `gitea_issue_templates` says it reads `.gitea/ISSUE_TEMPLATE/` | tool-def text is stale; the handler prefers the bundled `assets/issue-templates/` | describe the bundled pack in docs | #47 | open |
+| `gitea_pr_comment`/`gitea_pr_line_comment` print `Unrecognised response` + raw JSON | `formatters.js` has a `gitea_issue_comment` branch but none for the PR-side names, which hit the same comments endpoint; a comment object has no top-level `name`/`title`/`login`/`number`/`path`, so `describeUnknownObject()` matches nothing | the call itself succeeds — read the id/author from the JSON | #65 | open |
 
 Fixing a tool bug = one issue, one PR, a formatter test, and a row update in
 this table — same sitting.
