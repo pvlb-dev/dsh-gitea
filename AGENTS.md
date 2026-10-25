@@ -117,7 +117,7 @@ The tracker holds the repros and acceptance notes; this table is the index.
   `@goodandready/dsh-gitea`; the old scoped package stays in the registry for
   pinned installs). The bundle row id and Settings namespace stay `dsh-gitea`, so
   the `plugins.row.config` key is now `dsh-gitea#dsh-gitea`.
-  Fork version: `0.8.7` (see "Versioning and tags"). Runtime peer range:
+  Fork version: `0.8.8` (see "Versioning and tags"). Runtime peer range:
   `>=0.1.7-rc.2 <0.2.0-0 || >=0.2.0-rc.1 <0.3.0-0 || >=0.2.1-0 <0.3.0-0`
   (`peerDependencies`) — widened on 2026-10-24 so the running `0.2.1-rc.2`
   Harness satisfies it, because `^0.2.0-rc.1` excludes prereleases of a
@@ -201,11 +201,12 @@ The tracker holds the repros and acceptance notes; this table is the index.
 
 ### Versioning and tags
 
-- Fork version: `0.8.7` (dropdown fix + flavor/wiki defects; 0.8.6 was
+- Fork version: `0.8.8` (Host-authoritative preset list; 0.8.7 was
+  dropdown fix + flavor/wiki defects; 0.8.6 was
   dispatcher preset + issue metadata; 0.8.5 was
   tool-surface presets + opt-in aliases, 0.8.4 staged npmjs publishing, 0.8.3
   publish config, 0.8.2 README + peer-range). Earlier builds used
-  `<upstream base>-dsh.<n>`; hotfixes can use `0.8.7-dsh.<n>` if needed.
+  `<upstream base>-dsh.<n>`; hotfixes can use `0.8.8-dsh.<n>` if needed.
 - Tag every state that is live on the server as `v<version>` (for example
   `v0.8.1`). Rollback = `git checkout <tag>`, toggle the bundle off/on,
   hard-refresh.
@@ -1039,3 +1040,29 @@ release.
    with a reason if the probe fails. Live: this instance now reports `forgejo`.
 5. `npm run check`: 195 tests (13 new across `test/flavor.test.mjs` and the wiki
    suite), leak scan clean, syntax clean.
+
+## Session log — Host-authoritative preset list (0.8.8, 2026-10-25)
+
+Right after 0.8.7 the operator picked `dispatcher` and the Host answered
+`unknown tool preset "dispatcher" in Config.preset (expected: core, issues,
+prs, repos, ops, full, none, custom)`. The checkout had `dispatcher`, so the
+*running process* was holding the `lib/selection.js` instance loaded when the
+process started (pre-0.8.6 merge); HMR had refreshed the formatter modules but
+not that one. The client bundle is served per request, so the dropdown was
+fresh while the Host was not — i.e. a version skew between the two halves
+produced an option the Host rejects.
+
+1. The Host is now the authority: `registerHttpRoutes` receives
+   `presets: [...PRESET_NAMES]` and `/dsh-gitea/config` returns it; the form
+   renders `presetOptions` from the response, with the bundled list only as a
+   fallback for older Hosts. A stale/newer client can no longer invent a preset.
+2. Because the config route is also the form's read path, the skew is now
+   self-describing: a Host that does not accept `dispatcher` also does not send
+   it.
+3. `test/selection.test.mjs` asserts both halves (Host sends `...PRESET_NAMES`,
+   client prefers the served list), alongside the existing "dropdown equals
+   PRESET_NAMES" guard.
+4. Reminder for the next reload: editing a Host module only refreshes *that*
+   module under HMR; a module changed earlier by a branch merge may stay stale
+   in the running process. When a Host constant looks wrong but the checkout is
+   right, toggle the bundle (or restart `dsh web`) rather than editing code.
