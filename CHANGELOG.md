@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.8.8] - 2026-10-25
+
+### The Host owns the preset list
+
+- **The settings form now renders the presets the running Host accepts**
+  instead of a bundled copy. `/dsh-gitea/config` returns `presets` (from
+  `PRESET_NAMES`), the form uses it, and the bundled `PRESET_OPTIONS` is only a
+  fallback for older Hosts. This closes the failure that surfaced right after
+  0.8.7: the freshly served client bundle offered `dispatcher` while the
+  long-running Host process still held the pre-0.8.6 module and rejected it with
+  `unknown tool preset "dispatcher"`. A model-visible form/Host skew can no
+  longer produce an unselectable option.
+- `test/selection.test.mjs` asserts both halves: the Host sends `...PRESET_NAMES`
+  and the client prefers the served list.
+
 ## [0.8.7] - 2026-10-25
 
 ### A selectable dispatcher, and three tool defects

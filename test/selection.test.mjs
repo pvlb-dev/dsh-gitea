@@ -172,6 +172,16 @@ test('the settings dropdown offers exactly the presets the Host accepts (#51)', 
   assert.ok(options.includes('dispatcher'), 'dispatcher is selectable in the settings form')
 })
 
+test('the Host sends the preset list it will accept (0.8.8)', () => {
+  // The form must render the Host's list, not a bundled copy: a stale client
+  // once offered `dispatcher` while the running Host still rejected it.
+  assert.match(hostEntry, /presets: \[\.\.\.PRESET_NAMES\]/)
+  assert.match(routes, /presets: Array\.isArray\(options\.presets\)/)
+  assert.match(client, /const \[presetOptions, setPresetOptions\] = React\.useState\(PRESET_OPTIONS\)/)
+  assert.match(client, /setPresetOptions\(data\.presets\)/)
+  assert.match(client, /\n          presetOptions,/)
+})
+
 test('settings form exposes the surface in both locales', () => {
   for (const key of [
     'sectionTools', 'preset', 'presetHint', 'tools', 'toolsHint',
