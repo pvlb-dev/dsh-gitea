@@ -1,6 +1,7 @@
-# 🏴 dsh-gitea
-
 <div align="center">
+
+# 🏴 dsh-gitea
+**English** | [中文](README.zh.md)
 
 **Gitea/Forgejo, driven from your DeepSeek Harness session.**
 
