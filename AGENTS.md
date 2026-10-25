@@ -571,6 +571,14 @@ regression gate for edits to `lib/client.js`.
   browser check.
 - A `link:` install's client bundle is served by path: changing
   `lib/client.js` and toggling the bundle is the supported reload path.
+- **A tool *definition* is captured at registration; a formatter it imports is a
+  live binding.** HMR replaces the imported module immediately, but the render
+  closure registered earlier keeps its old shape — so a formatter-only fix shows
+  up live at once, while a fix that needs *new data* (e.g. #65's `args`
+  forwarding) renders through the old closure until the surface is re-registered
+  (bundle toggle, `dsh web` restart, or a fresh registration). Do not call a live
+  check failed on that split; check the boot-level test and say which half is
+  live.
 - **A test that imports `lib/index.js` needs the DSH peer packages.** The CI
   runner installs the package without a profile, so `@deepseek-ai/schemastery`
   and friends are absent and the import throws `ERR_MODULE_NOT_FOUND`. Such

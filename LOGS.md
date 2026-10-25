@@ -598,4 +598,8 @@ schema breakage; the only real risk is that `lib/client.js` is generated output.
     in the call arguments, so `formatToolResult()` gained an `args` parameter and
     the canonical, legacy-alias and dispatcher render closures forward it — that
     forwarding is what makes the fix work on the new default surface. 225 tests,
-    leak scan clean, live check in the running Harness. No release.
+    leak scan clean. The live check (posting the PR note on #64) showed the prose
+    render immediately but fell back to "the pull request" without `PR #64`: the
+    formatter is a live module binding, the earlier-registered render closure is
+    not, so the args half needs a re-registration (bundle toggle/restart). AGENTS
+    now records that split. No release.
