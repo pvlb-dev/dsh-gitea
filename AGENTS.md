@@ -207,6 +207,9 @@ The tracker holds the repros and acceptance notes; this table is the index.
   tool-surface presets + opt-in aliases, 0.8.4 staged npmjs publishing, 0.8.3
   publish config, 0.8.2 README + peer-range). Earlier builds used
   `<upstream base>-dsh.<n>`; hotfixes can use `0.8.8-dsh.<n>` if needed.
+- **Next: `0.8.9`, not cut.** #63 (Git-sidebar repository link) is the first
+  entry under `## [Unreleased]`; bundle a few issues before tagging — see
+  "Bundled releases and the on-server test phase".
 - Tag every state that is live on the server as `v<version>` (for example
   `v0.8.1`). Rollback = `git checkout <tag>`, toggle the bundle off/on,
   hard-refresh.
@@ -277,6 +280,34 @@ The tracker holds the repros and acceptance notes; this table is the index.
   `.npmrc` that leaves the default registry (npmjs) alone, so other profile
   packages still resolve normally.
 
+### Bundled releases and the on-server test phase
+
+- **Only a `v*` tag builds.** `publish.yml`, `publish-npmjs.yml` and
+  `release.yml` are all tag-only; a push to `master` runs `ci.yml`
+  (`npm run check` + `npm pack --dry-run`) and produces no artifact. Branch
+  pushes trigger nothing. So "don't bump a release" means "don't tag" — merging
+  verified work to `master` is cheap.
+- **Do not tag per fix.** Accumulate entries under `## [Unreleased]` in
+  `CHANGELOG.md`, merge verified PRs to `master`, and cut a version when a
+  bundle is worth shipping (a handful of issues, or one area finished). Reserve
+  same-day tags for live breakage.
+- **Test phase before a tag, on this server, no build:**
+  1. `npm run check` — the full gate (tests, leak scan, `node --check`; 216
+     tests, ~15 s on this box). Run it after each change; it is the CI gate and
+     it ships no artifact.
+  2. Live check in the running GUI. Host-half edits are hot through the `hmr`
+     root in the profile patch; the client bundle is served per request, so a
+     `lib/client.js` change needs the bundle toggled (or `dsh web` restarted)
+     and the page hard-refreshed. There is no browser automation here — say so
+     in the report and let the operator look.
+  3. Registration evidence without a browser: `cordis_inspect_query` for the
+     Config schema, the `gitea_*` tool list and the occupied slots (see "Verify
+     without a browser").
+  4. If remote CI is wanted mid-bundle, dispatch the existing `ci.yml`
+     (`workflow_dispatch` accepts a branch) instead of adding a new workflow or
+     pushing to `master` early. No `pull_request` trigger — see the security
+     note at the top of `ci.yml`.
+
 ## Ground rules
 
 1. **Use the Harness tools, not shell writes, for the profile.** Changes to the
@@ -329,6 +360,8 @@ The tracker holds the repros and acceptance notes; this table is the index.
 | `lib/handlers.js`, `lib/handlers/*` | Tool implementations; `lib/tool-defs.js`, `lib/tool-defs/*` hold schemas |
 | `lib/settings`-related | Settings live in `lib/index.js` (`Config`, `readServedConfig`, `servedScope`); UI in `lib/client.js` |
 | `assets/issue-templates/` | Issue form templates the plugin can install |
+| `assets/logos/` | Gitea/Forgejo logo sources embedded in the client bundle (#63); attribution in its README |
+| `lib/repo-link.js` | Pure #63 helper: origin remote → browsable repository URL, icon/hide policy; tested by `test/repo-link.test.mjs` |
 | `cordis.patch.yml` | Bundle patch: inserts the `dsh-gitea` row with empty config |
 | `.forgejo/workflows/` | `ci.yml` (push checks), `publish.yml` (tag → Forgejo registry), `publish-npmjs.yml` (tag → npmjs), `release.yml` (tag → Forgejo release page + tarball) |
 | `scripts/dev-link-dsh.mjs` | Links DSH peer packages into this checkout for `link:` installs |
@@ -614,4 +647,5 @@ and provenance behind any change. One line per session, oldest first.
 | 2026-10-25 | 0.8.6 | Dispatcher preset + issue metadata (#51/#52) |
 | 2026-10-25 | 0.8.7 | Preset dropdown + wiki rename + flavor render/detection (#55/#56/#57) |
 | 2026-10-25 | 0.8.8 | Host-authoritative preset list (stale-Host skew) |
+| 2026-10-25 | — (unreleased) | #63 Git-sidebar repository link; bundled-release + on-server test-phase policy |
 

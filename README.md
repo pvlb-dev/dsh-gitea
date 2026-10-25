@@ -452,7 +452,10 @@ remote pages, and only ever accepts a credential reference — never a token.
 branch, a dirty marker, ahead/behind counts, the open PR number, `CI✗` when
 its checks fail, and a mirror-lag warning. One click opens a drawer with four
 tabs: **Status**, **Graph & CI** (commit graph with per-commit CI statuses),
-**Events & PRs** (live event feed and PR context) and **Hub**.
+**Events & PRs** (live event feed and PR context) and **Hub**. The drawer
+header also shows a **Gitea or Forgejo logo** that opens the repository's web
+page — the URL comes from the checkout's `origin` remote, and the icon
+(Forgejo, Gitea or hidden) is a setting.
 
 **Webhooks in, events out.** Point a Gitea/Forgejo webhook at
 `POST /dsh-gitea/webhook` and the payload is verified with HMAC-SHA256 using

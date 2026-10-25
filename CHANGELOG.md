@@ -1,5 +1,27 @@
 # Changelog
 
+## [Unreleased]
+
+### #63 — the Git sidebar links to its repository
+
+- **The Git drawer header now has a repository link.** A small Gitea or Forgejo
+  logo sits next to the branch badge and opens the repository's web page in a
+  new tab (`target="_blank"`, `rel="noopener noreferrer"`).
+- The URL is derived from the checkout's **`origin` remote** — SSH
+  (`ssh://git@host/owner/repo.git`), scp-like (`git@host:owner/repo.git`) and
+  HTTPS forms, with `.git`, the default SSH port and deeper paths removed — so
+  the link follows the repository the session is actually in. `defaultOwner` /
+  `defaultRepo` (e.g. `dsh` / `vps-setup` on this box) are only the fallback for
+  a checkout without a usable remote.
+- **Settings → Gitea → Git sidebar repository icon** chooses Forgejo
+  (default), Gitea, or Hidden. The field is volatile and persists through the
+  normal config route.
+- `/dsh-gitea/git-status` gains an additive `repoLink: { url, icon }` field; no
+  new endpoint, request or credential. The bundled logos and their attribution
+  live in `assets/logos/`.
+- Tests: `test/repo-link.test.mjs` covers the remote forms, the scheme rules,
+  the config fallback, the hide switch and the client rendering contract.
+
 ## [0.8.8] - 2026-10-25
 
 ### The Host owns the preset list

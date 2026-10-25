@@ -501,3 +501,33 @@ produced an option the Host rejects.
    module under HMR; a module changed earlier by a branch merge may stay stale
    in the running process. When a Host constant looks wrong but the checkout is
    right, toggle the bundle (or restart `dsh web`) rather than editing code.
+
+## Session log — #63 repository link, bundled releases (unreleased, 2026-10-25)
+
+Issue #63 asked for a clickable Gitea/Forgejo logo next to the branch badge in
+the Git drawer. Assessment: small UI feature, ~2–3 h, no API or schema
+breakage; the only real risk is that `lib/client.js` is generated output.
+
+1. `lib/repo-link.js` (new): `parseRemoteWebUrl` covers `ssh://`, scp-like
+   `git@host:owner/repo.git` and HTTPS origins, dropping `.git`, `:22` and
+   deeper paths; `buildRepoLink` applies the icon choice (`forgejo` default,
+   `gitea`, `none`), the `forceHttps` setting and the `defaultOwner` /
+   `defaultRepo` fallback.
+2. `lib/git-local.js` now returns `remoteUrl` in the snapshot; `/git-status`
+   adds `repoLink`. That route is already polled every 4 s, so the link costs
+   no extra request. The link is deliberately **not** derived from
+   `defaultOwner`/`defaultRepo` — on this box those are `dsh`/`vps-setup`,
+   while the checkout's origin is `dsh-plugins/dsh-gitea`.
+3. `lib/client.js`: logo data URIs (`assets/logos/` holds sources + attribution;
+   Forgejo is CC BY-SA 4.0), the anchor after the branch badge, the settings
+   select and both locale dictionaries. Data URI `<img>` keeps the Forgejo
+   SVG's internal `<style>` out of the app DOM.
+4. `lib/index.js`: `repoLinkIcon` volatile Config field, Forgejo default.
+5. `test/repo-link.test.mjs`: 7 tests; `npm run check` is 216 tests, leak scan
+   clean.
+6. Process, not a release: the only build is a `v*` tag, so this sits on
+   `feat/63-repo-link` (and `[Unreleased]` in `CHANGELOG.md`) until a bundle is
+   worth shipping. `AGENTS.md` now records the bundled-release and on-server
+   test-phase policy. Live visual verification (drawer header, settings select)
+   still needs the operator: HMR covers the Host half, the client bundle needs
+   a toggle/restart plus a hard refresh.
