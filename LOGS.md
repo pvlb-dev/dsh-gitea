@@ -538,5 +538,10 @@ schema breakage; the only real risk is that `lib/client.js` is generated output.
    the (now longer) English README rather than the stale upstream 334-line one;
    `package.json → files` ships it. The operator's screenshot became the README
    hero (`assets/screenshots/git-sidebar-drawer.jpg`), showing the #63 link in
-   the drawer header. Upstream's `README.ru.md` was not restored — no
-   maintained Russian translation exists on the fork.
+   the drawer header.
+8. The operator then asked for Russian too ("english | chinese | russian"):
+   `README.ru.md` is a fresh full translation of the current English README
+   (the dropped upstream file was 0.4-era), and all three headers now carry
+   the `English | 中文 | Русский` switcher. Both translations and the
+   screenshot ship in the tarball; `npm run check` and `npm pack --dry-run`
+   were re-run after the change. No version bump, no tag.

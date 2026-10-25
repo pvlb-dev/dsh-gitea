@@ -25,14 +25,16 @@
 
 ### Documentation
 
-- **The README is bilingual again.** `README.zh.md` is a full Chinese
-  translation of the English README (same structure, tables and tool
-  reference), linked as `English | 中文` from both headers. Upstream had
-  `README.zh.md`/`README.ru.md`; the fork had dropped them.
+- **The README is trilingual again.** `README.zh.md` and `README.ru.md` are
+  full translations of the English README (same structure, tables and tool
+  reference), linked as `English | 中文 | Русский` from all three headers.
+  Upstream had `README.zh.md`/`README.ru.md`; the fork had dropped them, and
+  both were rebuilt against the current English README rather than restored
+  from the 0.4-era files.
 - **The Git drawer screenshot is the README hero**
   (`assets/screenshots/git-sidebar-drawer.jpg`), showing the repository link
-  from #63. The screenshot ships in the tarball, and `README.zh.md` joins
-  `package.json → files`.
+  from #63. The screenshot ships in the tarball, and `README.zh.md` /
+  `README.ru.md` join `package.json → files`.
 
 ## [0.8.8] - 2026-10-25
 

@@ -1,7 +1,7 @@
 <div align="center">
 
 # 🏴 dsh-gitea
-**English** | [中文](README.zh.md)
+**English** | [中文](README.zh.md) | [Русский](README.ru.md)
 
 **Gitea/Forgejo, driven from your DeepSeek Harness session.**
 
@@ -629,7 +629,8 @@ Four Forgejo Actions workflows in `.forgejo/workflows/`:
   the public publish.
 - `package.json` is public (`publishConfig.access: public`), so both jobs
   publish the same tarball; `files` keeps the package to `lib/`, `assets/`,
-  `cordis.patch.yml`, `README.md`, `README.zh.md` and `LICENSE`.
+  `cordis.patch.yml`, `README.md`, `README.zh.md`, `README.ru.md` and
+  `LICENSE`.
 - No `pull_request` trigger on purpose: the shared runner gives job containers
   the host's rootless Docker socket, so only maintainer-controlled events may
   execute a workflow.
@@ -692,7 +693,8 @@ Updater:
 | `scripts/` | `dev-link-dsh.mjs` (`link:` bootstrap) and `leak-scan.mjs` (hygiene gate) |
 | `test/*.test.mjs` | The fork's regression suite (`npm test`) |
 | `assets/screenshots/` | README screenshot of the Git drawer (#63) |
-| `README.zh.md` | Chinese translation of this README, linked from both headers |
+| `README.zh.md` | Chinese translation of this README, linked from all three language headers |
+| `README.ru.md` | Russian translation of this README, linked from all three language headers |
 | `AGENTS.md` | Deep operational notes: DSH slot matrix, settings contract, install/reload runbooks, failure table |
 
 ## License

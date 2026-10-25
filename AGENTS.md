@@ -247,8 +247,8 @@ The tracker holds the repros and acceptance notes; this table is the index.
   `@goodandready/dsh-gitea` stays retired.
 - The package is public: no `private` field, `publishConfig.access: public`,
   `files` = `lib/`, `assets/`, `cordis.patch.yml`, `README.md`,
-  `README.zh.md`, `LICENSE`. The Forgejo job publishes it, the npmjs job stages
-  it.
+  `README.zh.md`, `README.ru.md`, `LICENSE`. The Forgejo job publishes it, the
+  npmjs job stages it.
 - `.forgejo/workflows/release.yml` runs on the same `v*` tag (manual dispatch
   prints the generated notes instead) and creates the **Forgejo release page**:
   `scripts/release-notes.mjs <version>` turns the `## [<version>]` section of
@@ -369,7 +369,8 @@ The tracker holds the repros and acceptance notes; this table is the index.
 | `assets/issue-templates/` | Issue form templates the plugin can install |
 | `assets/logos/` | Gitea/Forgejo logo sources embedded in the client bundle (#63); attribution in its README |
 | `assets/screenshots/` | README hero screenshot of the Git drawer (#63); shipped in the tarball |
-| `README.zh.md` | Chinese translation of the README, linked as `English \| 中文` from both headers; in the package `files` |
+| `README.zh.md` | Chinese translation of the README; language switcher links English / 中文 / Русский from all three headers; in the package `files` |
+| `README.ru.md` | Russian translation of the README; same structure, tables and tool reference; in the package `files` |
 | `lib/repo-link.js` | Pure #63 helper: origin remote → browsable repository URL, icon/hide policy; tested by `test/repo-link.test.mjs` |
 | `cordis.patch.yml` | Bundle patch: inserts the `dsh-gitea` row with empty config |
 | `.forgejo/workflows/` | `ci.yml` (push checks), `publish.yml` (tag → Forgejo registry), `publish-npmjs.yml` (tag → npmjs), `release.yml` (tag → Forgejo release page + tarball) |
@@ -656,5 +657,5 @@ and provenance behind any change. One line per session, oldest first.
 | 2026-10-25 | 0.8.6 | Dispatcher preset + issue metadata (#51/#52) |
 | 2026-10-25 | 0.8.7 | Preset dropdown + wiki rename + flavor render/detection (#55/#56/#57) |
 | 2026-10-25 | 0.8.8 | Host-authoritative preset list (stale-Host skew) |
-| 2026-10-25 | — (unreleased) | #63 Git-sidebar repository link; bundled-release + on-server test-phase policy; Chinese README + drawer screenshot |
+| 2026-10-25 | — (unreleased) | #63 Git-sidebar repository link; bundled-release + on-server test-phase policy; trilingual README (EN/ZH/RU) + drawer screenshot |
 

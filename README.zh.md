@@ -1,7 +1,7 @@
 <div align="center">
 
 # 🏴 dsh-gitea
-[English](README.md) | **中文**
+[English](README.md) | **中文** | [Русский](README.ru.md)
 
 **Gitea/Forgejo，在你的 DeepSeek Harness 会话中驱动。**
 
@@ -568,7 +568,8 @@ npm run test:leaks   # 可发布树卫生：私有路径/scope/token 字面量/�
   跳过公共发布。
 - `package.json` 是公开的（`publishConfig.access: public`），所以两个任务
   发布同一个 tarball；`files` 把包限制为 `lib/`、`assets/`、
-  `cordis.patch.yml`、`README.md`、`README.zh.md` 和 `LICENSE`。
+  `cordis.patch.yml`、`README.md`、`README.zh.md`、`README.ru.md` 和
+  `LICENSE`。
 - 有意没有 `pull_request` 触发：共享 runner 会把宿主机的 rootless Docker
   socket 给 job 容器，所以只有维护者可控的事件才能执行工作流。
 - 只有 push tag 才会发布，而同一个 tag 会发布到两个 registry —— Forgejo
@@ -627,7 +628,8 @@ npm stage approve <stage-id>
 | `scripts/` | `dev-link-dsh.mjs`（`link:` bootstrap）和 `leak-scan.mjs`（卫生门禁） |
 | `test/*.test.mjs` | 本 fork 的回归套件（`npm test`） |
 | `assets/screenshots/` | README 里的 Git 侧栏截图（#63） |
-| `README.zh.md` | 本 README 的中文翻译，两个语言版本的头部互相链接 |
+| `README.zh.md` | 本 README 的中文翻译，三个语言版本的头部互相链接 |
+| `README.ru.md` | 本 README 的俄语翻译，三个语言版本的头部互相链接 |
 | `AGENTS.md` | 深度运维笔记：DSH 座位矩阵、设置契约、安装/重载 runbook、故障表 |
 
 ## 许可证
