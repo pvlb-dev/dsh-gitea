@@ -27,13 +27,17 @@ const bootTest = (name, fn) => test(name, { skip: skipReason }, fn)
 // ctx.effect, so a recording stub is enough to observe the advertised surface.
 function fakeContext() {
   const registered = []
+  const definitions = []
   const ctx = {
     tools: {
       register(definition) {
         registered.push(definition.name)
+        definitions.push(definition)
         return () => {
           const index = registered.indexOf(definition.name)
           if (index >= 0) registered.splice(index, 1)
+          const defIndex = definitions.indexOf(definition)
+          if (defIndex >= 0) definitions.splice(defIndex, 1)
         }
       },
     },
@@ -50,7 +54,7 @@ function fakeContext() {
     credentials: { describe: async () => ({ configured: false }) },
     execFile: async () => ({ stdout: '', stderr: '' }),
   }
-  return { ctx, registered }
+  return { ctx, registered, definitions }
 }
 
 const boot = (config = {}) => {
@@ -120,4 +124,15 @@ bootTest('excludeTools subtracts and unmatched patterns are ignored (#49)', () =
 
 bootTest('an unknown preset fails at mount with a clear message (#49)', () => {
   assert.throws(() => boot({ preset: 'nope' }), /unknown tool preset "nope"/)
+})
+
+bootTest('canonical tool renders receive the call arguments (#65)', () => {
+  // The PR-comment formatters read the PR number from `args`, because the Forgejo
+  // payload does not carry it. The Host render closures must forward `args`.
+  const { ctx, definitions } = fakeContext()
+  apply(ctx, { baseUrl: 'https://example.test', tokenEnv: 'GITEA_TOKEN', preset: 'full' })
+  const def = definitions.find((d) => d.name === 'gitea_pr_comment')
+  assert.ok(def, 'gitea_pr_comment is registered by the full preset')
+  const out = def.output.render({ number: 64, body: 'hi' }, { ok: true, data: { id: 1, user: { login: 'dsh' } } })
+  assert.match(out[0].text, /^Comment posted on PR #64 \(comment #1\) by @dsh\.$/)
 })

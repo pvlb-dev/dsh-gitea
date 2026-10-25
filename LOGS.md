@@ -588,3 +588,14 @@ schema breakage; the only real risk is that `lib/client.js` is generated output.
     `HELP_NAME`, and two tests cover it (formatter level, plus the definition
     `apply()` registers end to end) — 221 tests, leak scan clean. Live check via
     the running plugin after HMR. No release.
+12. #65 is the same failure shape as #66, so it joined the bundle. Both
+    `gitea_pr_comment` (a Forgejo issue-comment payload) and
+    `gitea_pr_line_comment` (a *review* payload carrying one comment) had no
+    `formatToolResult()` branch, and neither payload has a top-level
+    `name`/`title`/`number`/`login`/`path`, so `describeUnknownObject()` matched
+    nothing: `Unrecognised response` plus raw JSON, while the call itself
+    succeeded. Fixed by rendering both shapes in prose; the PR number only exists
+    in the call arguments, so `formatToolResult()` gained an `args` parameter and
+    the canonical, legacy-alias and dispatcher render closures forward it — that
+    forwarding is what makes the fix work on the new default surface. 225 tests,
+    leak scan clean, live check in the running Harness. No release.

@@ -11,7 +11,7 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)))
 const formatterSource = readFileSync(join(root, 'lib/handlers/formatters.js'), 'utf8')
 
 const ok = (data) => ({ ok: true, data })
-const text = (name, value) => formatToolResult(name, value)[0].text
+const text = (name, value, args) => formatToolResult(name, value, args)[0].text
 
 // #2 — gitea_issue_list silently truncated at 20 rows.
 test('renders every issue row the API returned (#2)', () => {
@@ -172,4 +172,34 @@ test('gitea_help renders the operation schema, not clipped JSON (#66)', () => {
   assert.equal(text('gitea_help', { ok: false, error: 'unknown operation "nope"' }), 'gitea_help failed: unknown operation "nope"')
   // The formatter branches on the literal tool name; keep it equal to HELP_NAME.
   assert.match(formatterSource, /name === 'gitea_help'/)
+})
+
+// #65 — both PR comment tools fell through describeUnknownObject(): the API
+// payload is an issue comment (gitea_pr_comment) or a review carrying one
+// comment (gitea_pr_line_comment), and the PR number only exists in the call
+// arguments, which the render never forwarded.
+test('gitea_pr_comment renders the posted comment (#65)', () => {
+  const out = text('gitea_pr_comment', ok({ id: 1046, body: 'hi', user: { login: 'dsh' } }), { number: 64, body: 'hi' })
+  assert.equal(out, 'Comment posted on PR #64 (comment #1046) by @dsh.')
+  assert.doesNotMatch(out, /Unrecognised response/)
+})
+
+test('gitea_pr_line_comment renders the review and its line comment (#65)', () => {
+  const value = ok({
+    id: 77,
+    state: 'COMMENT',
+    body: '',
+    user: { login: 'dsh' },
+    comments: [{ id: 78, path: 'lib/x.js', new_position: 12, body: 'nit' }],
+  })
+  const out = text('gitea_pr_line_comment', value, { number: 64, path: 'lib/x.js', line: 12 })
+  assert.equal(out, 'Line comment posted on PR #64 (review #77, comment #78) by @dsh.\nPath: lib/x.js:12')
+})
+
+test('PR comment renders stay truthful without ids, author or number (#65)', () => {
+  assert.equal(text('gitea_pr_comment', ok({ body: 'x' }), {}), 'Comment posted on the pull request.')
+  // The review's own path wins over the call argument when both are present.
+  const value = ok({ id: 9, comments: [{ id: 9, path: 'a/b.js' }] })
+  const out = text('gitea_pr_line_comment', value, { number: 3, path: 'ignored.js' })
+  assert.equal(out, 'Line comment posted on PR #3 (comment #9).\nPath: a/b.js')
 })

@@ -37,6 +37,25 @@
 - Tests: a formatter check and an end-to-end check through the definition
   `apply()` registers.
 
+### #65 — the PR comment tools printed "Unrecognised response"
+
+- **`gitea_pr_comment` and `gitea_pr_line_comment` answer in prose now.**
+  `formatToolResult()` had a `gitea_issue_comment` branch but none for the two
+  PR-side names, which hit the same comments endpoint: the payload — an issue
+  comment, or a *review* carrying one comment — has no top-level
+  `name`/`title`/`number`/`login`/`path`, so `describeUnknownObject()` matched
+  nothing and the call printed `Unrecognised response` plus raw JSON. The call
+  itself always succeeded, which is why the workaround was "read the id/author
+  from the JSON".
+- The PR number is not in either payload, so `formatToolResult()` takes the call
+  arguments as a third parameter and the Host render closures forward them
+  (canonical tool, legacy alias, and the dispatcher path). The rendered line is
+  `Comment posted on PR #64 (comment #1046) by @dsh.` or, for a line comment,
+  `Line comment posted on PR #64 (review #77, comment #78) by @dsh.` followed by
+  `Path: lib/x.js:12`.
+- Tests: formatter checks for both payload shapes, the no-metadata fallback, and
+  a boot-level check that the registered render receives `args`.
+
 ### #63 — the Git sidebar links to its repository
 
 - **The Git drawer header now links to the repository.** The logo and the
