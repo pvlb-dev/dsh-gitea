@@ -1,7 +1,10 @@
 <div align="center">
 
-# 🏴 dsh-gitea
-**English** | [中文](README.zh.md) | [Русский](README.ru.md)
+# 🏴 dsh-gitea <img src="https://git.pvlb.dev/attachments/9f4a3eab-0282-449d-899b-7cd2e088b846" alt="gitea" width="36"> <img src="https://git.pvlb.dev/attachments/b4a3fb57-a553-4ddb-93c5-4623857979bc" alt="forgejo" width="36">
+
+https://git.pvlb.dev/attachments/9f4a3eab-0282-449d-899b-7cd2e088b846
+
+🇬🇧 **English** | 🇨🇳 [中文](README.zh.md) | 🇷🇺 [Русский](README.ru.md)
 
 **Gitea/Forgejo, driven from your DeepSeek Harness session.**
 
@@ -10,12 +13,6 @@ Main repo on [pvlb.dev/dsh-plugins/dsh-gitea](https://git.pvlb.dev/dsh-plugins/d
 96 first-class tools · preset-switchable surface · settings page · live Git status chip
 
 [Install](#install) · [Configure](#configure) · [The toolset](#the-toolset) · [Safety](#safety-by-default) · [Development](#development) · [npm](https://www.npmjs.com/package/dsh-gitea)
-
-<img src="assets/screenshots/git-sidebar-drawer.jpg" alt="The Git drawer: repository link, branch, sync state, changes and recent commits" width="420">
-
-*The Git drawer — repository link, branch, sync state, changes and recent commits.*
-
-</div>
 
 ---
 
@@ -61,6 +58,12 @@ follow-up issue without leaving the chat.
 - **Work where the repo lives.** Git worktrees for isolated branches, a
   commit graph in the UI, and an issue → branch → worktree → PR flow that
   keeps the issue and the code in sync.
+
+  <img src="assets/screenshots/git-sidebar-drawer.jpg" alt="The Git drawer: repository link, branch, sync state, changes and recent commits" width="420">
+
+*The Git drawer — repository link, branch, sync state, changes and recent commits.*
+
+</div>
 
 ## Requirements
 
