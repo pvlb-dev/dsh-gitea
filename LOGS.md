@@ -669,3 +669,13 @@ the three plain session-handoff labels.
   map, which is what the nightly healthcheck's orphan rule checks.
 - Committed as `docs: split AGENTS.md into a map and topic files` and pushed to
   `origin/master`; no release (docs only).
+- Follow-up questions in the same session. **Approvals:** the platform does
+  have one-shot tool approvals (`dsh-user-approval` + the browser
+  `dsh-client-ui-approval` panel), but they only fire for calls that raise a
+  request — sandbox-escalation retries, `plugin_manager` tool actions, PTC
+  `run_code` — not for ordinary plugin tool use; no session log on this box has
+  ever recorded an `approval/asked` event. **Webhooks:** yes, a Forgejo 17
+  hook can start a DSH session on issue assignment in-process via
+  `ctx.sessionController.create()` + `.prompt()`; research note and proposal:
+  [`devops/webhooks.md`](devops/webhooks.md), tracked as #69 (nothing built,
+  and the live profile has no webhook secret, so the route is 401 today).

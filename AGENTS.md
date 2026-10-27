@@ -63,6 +63,7 @@ metadata only (#4); the body needs
 | If the task touches… | Read |
 |---|---|
 | a `gitea_*` tool defect, a formatter, a handler, the tool surface, presets/`dispatcher` | [`devops/tools.md`](devops/tools.md) |
+| Forgejo webhook triggers, event wiring, starting a DSH session from an issue | [`devops/webhooks.md`](devops/webhooks.md) |
 | how DSH 0.2.x loads the plugin: Host/Client halves, slot matrix, Settings contract, HTTP routes | [`devops/architecture.md`](devops/architecture.md) |
 | versions, tags, CI, publishing (Forgejo + npmjs), the updater | [`devops/releases.md`](devops/releases.md) |
 | fork status, upstream rebase, GitHub mirror, history compaction | [`devops/upstream.md`](devops/upstream.md) |
