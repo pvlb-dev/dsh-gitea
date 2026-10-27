@@ -82,8 +82,10 @@ an accident. The updater is double-gated: the loopback request fence in
   scope is packages-only. Keep the script dependency-free and covered by
   `test/release-notes.test.mjs`, because `npm run check` is the CI gate that
   guards it.
-- Release ritual: bump `package.json` + `CHANGELOG.md`, commit, push `master`,
-  then `git tag -a v<version> -m "…" && git push origin v<version>`. The tag
+- Release ritual: bump `package.json` + `CHANGELOG.md`, **refresh the
+  translations** (`README.zh.md` / `README.ru.md` against `README.md` — see
+  [`workflow.md`](workflow.md)), commit, push `master`, then
+  `git tag -a v<version> -m "…" && git push origin v<version>`. The tag
   starts three jobs: registry publish, npmjs stage, release page. To backfill a
   tag that predates `release.yml`, dispatch it manually or POST the payload
   from `scripts/release-notes.mjs` with a user token.
@@ -131,4 +133,8 @@ an accident. The updater is double-gated: the loopback request fence in
      (`workflow_dispatch` accepts a branch) instead of adding a new workflow or
      pushing to `master` early. No `pull_request` trigger — see the security
      note at the top of `ci.yml`.
+  5. Refresh the translations as the last step before the tag — this is the
+     only point in the cycle where `README.zh.md` / `README.ru.md` are brought
+     up to date with `README.md` ([`workflow.md`](workflow.md)). Do it in the
+     release commit so the tag ships all three in sync.
 

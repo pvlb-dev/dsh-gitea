@@ -56,10 +56,11 @@ The hard rules behind the sections below:
   timeouts); `lib/routes-hub.js` dispatches the Interactive Hub actions behind
   `POST /dsh-gitea/hub`.
 - Assets: `assets/logos/` holds the Gitea/Forgejo logo sources embedded in the
-  client bundle (#63; attribution in its README), `assets/screenshots/` holds
-  the README hero screenshot of the Git drawer (#63), and
-  `assets/issue-templates/` holds the issue forms the plugin can install. All
-  ship in the tarball.
+  client bundle (#63; attribution in its README), `assets/illustrations/` holds
+  the README hero illustration, `assets/screenshots/` holds the Git drawer
+  screenshot (#63), and `assets/issue-templates/` holds the issue forms the
+  plugin can install. All ship in the tarball; images are downscaled before
+  they are committed (see [`workflow.md`](workflow.md)).
 
 ## How DSH 0.2.x loads this plugin
 

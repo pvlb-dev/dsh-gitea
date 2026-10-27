@@ -679,3 +679,25 @@ the three plain session-handoff labels.
   `ctx.sessionController.create()` + `.prompt()`; research note and proposal:
   [`devops/webhooks.md`](devops/webhooks.md), tracked as #69 (nothing built,
   and the live profile has no webhook secret, so the route is 401 today).
+
+## 2026-10-27 — README hero illustration and the "English first" policy
+
+- Operator supplied a generated illustration (whale blacksmith at the forge,
+  tea in hand) for the README. Downscaled 2741×1530 → **1600×893, 196 KB**
+  (sharp in a throwaway `/tmp/imgwork` project; the box has no ImageMagick and
+  the npm cache was root-owned, so `--cache /tmp/npm-cache-dsh`), stored as
+  `assets/illustrations/whale-forge.jpg`, displayed at 860 px in the header
+  block of `README.md`. Provenance in `assets/illustrations/README.md`; the
+  npm tarball goes from ~275 KB to ~479 KB, which is why the downscale is the
+  default and the policy below caps README images at ~200 KB.
+- The operator paired it with a **docs policy change**: keep `README.md`
+  current with every change, and translate `README.zh.md` / `README.ru.md` in
+  the release pass instead of per change. Recorded where the new map says it
+  belongs: a one-line rule in `AGENTS.md`'s session protocol pointing at a new
+  "Docs and translations" section in `devops/workflow.md`, and the tag-time
+  step in `devops/releases.md` (release ritual + test phase step 5). Shared
+  media lives once under `assets/`, so an image change is one README edit and
+  the translations inherit it when they are refreshed.
+- Verified: `npm run check` (225 tests, leak scan clean — binary assets are
+  skipped by the scanner), `npm pack --dry-run` lists
+  `assets/illustrations/whale-forge.jpg` and the new README. No release.

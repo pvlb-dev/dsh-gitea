@@ -19,6 +19,27 @@ and [`pvlb-infra/vps-setup/devops/workflow.md`](https://git.pvlb.dev/pvlb-infra/
    work lands, and append the session to [`LOGS.md`](../LOGS.md). A change is
    not finished until it is recorded.
 
+## Docs and translations
+
+- **`README.md` is the source of truth and travels with every change.** If a
+  commit changes something a user can see — install steps, a config field, the
+  preset table, a tool's behaviour, the repository layout — the English manual
+  is updated in the same commit. A user-visible change with a stale `README.md`
+  is an unfinished change.
+- **Translations are refreshed in the release pass, not per change.**
+  `README.zh.md` and `README.ru.md` are brought back in line with `README.md`
+  before a version is tagged ([`releases.md`](releases.md)). Between releases a
+  translation may lag; every translated file keeps its "the English version
+  wins" disclaimer, so a lag is expected rather than a defect. Do not spend a
+  change on three files when only the source of truth moved.
+- Shared media (logos, the README illustration, screenshots) lives once under
+  `assets/` and is referenced by path from every language file, so an image
+  change only ever edits the English README; the translations inherit it when
+  they are refreshed.
+- **Images are downscaled before they are committed** — aim for < 200 KB per
+  README image (they ship in the npm tarball), and always give them alt text.
+  Provenance for non-screenshot art goes in the folder's `README.md`.
+
 ## The input box
 
 `input/` at the repo root is a symlink to `devops/input/`; the agent home owns

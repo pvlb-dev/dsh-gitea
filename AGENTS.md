@@ -124,7 +124,7 @@ Labels are per repository. Every issue gets three axes when it is opened:
 | `lib/selection.js`, `lib/dispatcher.js` | Tool-surface presets + the default two-tool dispatcher |
 | `lib/handlers*`, `lib/tool-defs*` | Tool implementations and schemas; formatters under `lib/handlers/formatters.js` |
 | `lib/routes*.js`, `lib/http-guard.js`, `lib/plugin-updater.js`, `lib/repo-link.js` | HTTP surface, auth fence, one-click updater, repository link |
-| `assets/` | Issue templates, logos and the README screenshot (shipped) |
+| `assets/` | Issue templates, logos, the README hero illustration and the Git drawer screenshot (shipped) |
 | `.forgejo/workflows/` | `ci.yml`, `publish.yml`, `publish-npmjs.yml`, `release.yml` (see [`devops/releases.md`](devops/releases.md)) |
 | `scripts/` | `dev-link-dsh.mjs`, `leak-scan.mjs`, `release-notes.mjs`, `mirror-public.mjs` |
 | `test/*.test.mjs` | Fork regression checks (`npm test`); upstream ships none |
@@ -143,6 +143,10 @@ Labels are per repository. Every issue gets three axes when it is opened:
 5. Label the matching issue at creation, close it in the same pass the work
    lands, and append the session to [`LOGS.md`](LOGS.md). A change is not
    finished until it is recorded.
+6. **`README.md` travels with every change; the translations wait for the
+   release pass.** Keep the English manual current in the same commit;
+   `README.zh.md` / `README.ru.md` are refreshed before a tag, not per change
+   ([`devops/workflow.md`](devops/workflow.md)).
 
 ## House rule: keep this file small
 

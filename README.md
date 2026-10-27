@@ -12,6 +12,8 @@ Main repo on [pvlb.dev/dsh-plugins/dsh-gitea](https://git.pvlb.dev/dsh-plugins/d
 
 [Install](#install) · [Configure](#configure) · [The toolset](#the-toolset) · [Safety](#safety-by-default) · [Development](#development) · [npm](https://www.npmjs.com/package/dsh-gitea)
 
+<img src="assets/illustrations/whale-forge.jpg" alt="A whale blacksmith resting at the forge, tea in one hand — the mood of a well-run repository" width="860">
+
 </div>
 
 ---
@@ -705,6 +707,7 @@ Updater:
 | `.forgejo/workflows/` | `ci.yml` (push checks), `publish.yml` (tag → Forgejo registry) and `publish-npmjs.yml` (tag → npmjs) |
 | `scripts/` | `dev-link-dsh.mjs` (`link:` bootstrap) and `leak-scan.mjs` (hygiene gate) |
 | `test/*.test.mjs` | The fork's regression suite (`npm test`) |
+| `assets/illustrations/` | README hero illustration (`whale-forge.jpg`); provenance in its README |
 | `assets/screenshots/` | README screenshot of the Git drawer (#63) |
 | `README.zh.md` | Chinese translation of this README, linked from all three language headers |
 | `README.ru.md` | Russian translation of this README, linked from all three language headers |

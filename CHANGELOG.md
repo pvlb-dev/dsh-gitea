@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+### Documentation
+
+- **The README has a hero illustration.** `assets/illustrations/whale-forge.jpg`
+  — a whale blacksmith resting at the forge, tea in hand — sits in the header
+  block (displayed at 860 px, stored at 1600 px / 196 KB, downscaled from the
+  original so the repo and the npm tarball stay small). Provenance in
+  `assets/illustrations/README.md`.
+- **Translation policy: English first, translations at release time.**
+  `README.md` is updated in the same commit as the change it describes;
+  `README.zh.md` and `README.ru.md` are refreshed in the release pass before the
+  tag. Recorded in `AGENTS.md` (session protocol) and the `devops/workflow.md`
+  and `devops/releases.md` topics, so a future session does not slow a change
+  down by rewriting three manuals.
+
 ### The tool surface defaults to `dispatcher`
 
 - **New installs get the two-tool surface.** `Config.preset` now defaults to
