@@ -1,7 +1,8 @@
 # Forgejo 17.0 webhooks → DSH chat session (engineering note)
 
-Status: research only, nothing implemented; tracked as [#69](https://git.pvlb.dev/dsh-plugins/dsh-gitea/issues/69).
-Verified against the Forgejo **v17.0.0** source tag,
+Status: research only, nothing implemented — the operator declined implementation on 2026-10-27
+for safety reasons (issue [#69](https://git.pvlb.dev/dsh-plugins/dsh-gitea/issues/69), closed);
+kept as a reference. Verified against the Forgejo **v17.0.0** source tag,
 the v17.0 docs, and this box's running DSH `0.2.1-rc.2` (profile `web`).
 Anything marked **[unverified]** was not proven on the live instance.
 
