@@ -66,7 +66,9 @@
   (canonical tool, legacy alias, and the dispatcher path). The rendered line is
   `Comment posted on PR #64 (comment #1046) by @dsh.` or, for a line comment,
   `Line comment posted on PR #64 (review #77, comment #78) by @dsh.` followed by
-  `Path: lib/x.js:12`.
+  `Path: lib/x.js:12`. Through the `dispatcher` surface the arguments arrive
+  nested as `{ operation, args }`, which the formatter unwraps, so the PR number
+  survives the default surface too.
 - Tests: formatter checks for both payload shapes, the no-metadata fallback, and
   a boot-level check that the registered render receives `args`.
 

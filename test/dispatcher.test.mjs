@@ -181,3 +181,16 @@ bootTest('the registered gitea_help tool renders the schema (#66)', () => {
   )
   assert.match(failed[0].text, /^gitea_help failed: unknown operation/)
 })
+
+bootTest('the dispatcher render unwraps nested call arguments for the formatter (#65)', () => {
+  // The default surface routes every call through `gitea { operation, args }`;
+  // a formatter that needs call data (the PR number, #65) must see the inner
+  // `args`, not the envelope.
+  const definition = boot({ preset: 'dispatcher' }).find((def) => def.name === DISPATCHER_NAME)
+  assert.ok(definition, 'the dispatcher tool is registered by the default preset')
+  const out = definition.output.render(
+    { operation: 'gitea_pr_comment', args: { number: 64, body: 'hi' } },
+    { ok: true, data: { id: 7, user: { login: 'dsh' } } },
+  )
+  assert.equal(out[0].text, 'Comment posted on PR #64 (comment #7) by @dsh.')
+})

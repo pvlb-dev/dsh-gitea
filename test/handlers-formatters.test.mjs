@@ -203,3 +203,13 @@ test('PR comment renders stay truthful without ids, author or number (#65)', () 
   const out = text('gitea_pr_line_comment', value, { number: 3, path: 'ignored.js' })
   assert.equal(out, 'Line comment posted on PR #3 (comment #9).\nPath: a/b.js')
 })
+
+test('the dispatcher shape of the call arguments still yields the PR number (#65)', () => {
+  // On the default surface the render receives `{ operation, args }`; the PR
+  // number lives one level down in `args.args`.
+  const out = text('gitea_pr_comment', ok({ id: 1056, user: { login: 'dsh' } }), {
+    operation: 'gitea_pr_comment',
+    args: { number: 64, body: 'hi' },
+  })
+  assert.equal(out, 'Comment posted on PR #64 (comment #1056) by @dsh.')
+})

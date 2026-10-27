@@ -701,3 +701,12 @@ the three plain session-handoff labels.
 - Verified: `npm run check` (225 tests, leak scan clean — binary assets are
   skipped by the scanner), `npm pack --dry-run` lists
   `assets/illustrations/whale-forge.jpg` and the new README. No release.
+- Follow-up inside the same session: the first PR comment from the new
+  **dispatcher** surface rendered `Comment posted on the pull request
+  (comment #1396) by @dsh.` — prose, no raw JSON, but without `PR #64`.
+  Dispatcher calls deliver the formatter `{ operation, args }`, so the PR number
+  sits one level down; #65's branch now unwraps `args.args` before reading it
+  (`lib/handlers/formatters.js`), with a formatter test for the nested shape and
+  a boot-level test through the registered `gitea` definition. 227 tests, leak
+  scan clean. This is the second time the default surface caught a formatter
+  that only worked on the typed one.
