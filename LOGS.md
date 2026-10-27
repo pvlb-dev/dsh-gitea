@@ -8,6 +8,36 @@ when you need the reasoning or the provenance behind a change.
 Nothing here is required to operate the plugin: `README.md` is the user manual,
 `AGENTS.md` is the agent manual, and this file is the lab notebook.
 
+## Session index
+
+One line per session, oldest first; the sections below are the detail.
+
+| Date | Release | Session |
+|:--|:--|:--|
+| 2026-10-22 | — | Settings UI restored: `settings.section` seat, route-backed form, HTTP-guard 403 fix |
+| 2026-10-22 | — | Fork hardening: updater off-switch, fork docs, regression tests |
+| 2026-10-23 | — | Tool trust patch (#2/#5/#7), branch renamed to `master`, house taxonomy |
+| 2026-10-23 | — | CI, publishing and the own-registry updater |
+| 2026-10-23 | — | Package renamed to `dsh-gitea`, runtime dependency dropped |
+| 2026-10-23 | 0.7.40-dsh.5 | Event panel locale fix |
+| 2026-10-24 | 0.7.40-dsh.6 | Updater PATH and error visibility |
+| 2026-10-24 | 0.7.40-dsh.7 | Tarball installs, default-registry safety |
+| 2026-10-24 | — | Wiki read/write fixes (#9/#4/#10) |
+| 2026-10-24 | — | Remaining tool bugs closed (#3/#6/#8) |
+| 2026-10-24 | 0.8.0 | QA sweep: 20 issues (#19–#38) in four batches |
+| 2026-10-24 | 0.8.1 | Updater symlink fix (#44) |
+| 2026-10-24 | 0.8.2 | Public README, public repo, GitHub mirror path |
+| 2026-10-24 | 0.8.3 | First public npmjs release |
+| 2026-10-24 | 0.8.4 | Staged npmjs publishing (`npm stage publish`) |
+| 2026-10-24 | — | Generated Forgejo release pages + wiki template |
+| 2026-10-24 | 0.8.5 | Tool-surface presets + opt-in aliases (#48/#49) |
+| 2026-10-25 | — | #51 dispatcher spike measured (real triage runs) |
+| 2026-10-25 | 0.8.6 | Dispatcher preset + issue metadata (#51/#52) |
+| 2026-10-25 | 0.8.7 | Preset dropdown + wiki rename + flavor render/detection (#55/#56/#57) |
+| 2026-10-25 | 0.8.8 | Host-authoritative preset list (stale-Host skew) |
+| 2026-10-25 | — (unreleased) | #63 Git-sidebar repository link; bundled-release + on-server test-phase policy; trilingual README (EN/ZH/RU) + drawer screenshot; `dispatcher` becomes the default preset (`DEFAULT_PRESET`); #66 `gitea_help` formatter fix; #65 PR-comment formatters |
+| 2026-10-27 | — | Bootcamp sync: AGENTS.md split into a map + `devops/` topics, input box, `note`/`NaNs` handoffs |
+
 ## Session log (2026-10-22)
 
 Diagnosis and changes made while restoring the settings UI:
@@ -603,3 +633,39 @@ schema breakage; the only real risk is that `lib/client.js` is generated output.
     formatter is a live module binding, the earlier-registered render closure is
     not, so the args half needs a re-registration (bundle toggle/restart). AGENTS
     now records that split. No release.
+
+## Session log — bootcamp sync, map split (2026-10-27)
+
+The operator pointed at the updated bootcamp
+(<https://git.pvlb.dev/pvlb-infra/vps-setup/wiki/DSH-Bootcamp>; cloned over
+SSH because the wiki is private) and asked for this workspace to follow it. The
+page gained a house style since the last sync: `AGENTS.md` is a **map**, not the
+manual; a project has an `input/` drop box; and `note` / `NaNs` / `bootcamp` are
+the three plain session-handoff labels.
+
+- `AGENTS.md` went from 43.7 KB to ~9 KB: orientation, the contract, a trigger
+  table, the five traps, the repo layout, the session protocol and the
+  65,536-byte instruction-budget rule. The existing sections moved (lightly
+  edited for cross-references) into `devops/`:
+  - `architecture.md` — what the plugin is, Host/Client halves, the slot
+    matrix, the Settings contract, the HTTP routes;
+  - `tools.md` — the tool surface (presets, aliases, `dispatcher`) plus the
+    known-bug table and the QA sweep index;
+  - `releases.md` — versioning, the four workflows, npmjs staging, the release
+    ritual, bundled-release policy;
+  - `upstream.md` — fork status, upstream sync, the GitHub mirror, history
+    compaction;
+  - `state.md` — deployment facts and the current version;
+  - `deploy.md` — install/dev loop, verification limits, common failures,
+    security invariants, known limitations;
+  - `workflow.md` — session protocol, input box, handoffs, docs budget.
+- The repo now has the **input box**: `input` (mode 120000) →
+  `devops/input/`, the README tracked and `devops/input/*` gitignored, so a drop
+  never leaves a dirty tree.
+- `GIT.md` copied from `pvlb-dev` and gitignored, per the bootcamp.
+- **Verified:** `npm run check` (225 tests, leak scan, `node --check`); no code
+  changed, so the suite is unchanged. `wc -c` shows the map at 9,214 bytes and
+  every topic below 24 KB; every `devops/*.md` and `GIT.md` is linked from the
+  map, which is what the nightly healthcheck's orphan rule checks.
+- Committed as `docs: split AGENTS.md into a map and topic files` and pushed to
+  `origin/master`; no release (docs only).

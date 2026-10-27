@@ -8,3 +8,12 @@ credentials.yaml
 .planning/
 *.log
 .worktrees/
+
+# Machine-local instructions (identity, signing, tokens): the bootcamp ships a
+# portable GIT.md; copy it in, never commit it. See AGENTS.md.
+GIT.md
+
+# Operator input box: contents stay local; only the README and the root `input`
+# symlink travel with the repo (see devops/workflow.md and devops/input/README.md).
+devops/input/*
+!devops/input/README.md
