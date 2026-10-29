@@ -194,3 +194,12 @@ bootTest('the dispatcher render unwraps nested call arguments for the formatter 
   )
   assert.equal(out[0].text, 'Comment posted on PR #64 (comment #7) by @dsh.')
 })
+
+test('the catalog says the names are operations, not tools (#67)', () => {
+  const description = buildDispatcherDescription(TOOL_DEFS)
+  assert.match(description, /OPERATIONS, not tools/)
+  assert.match(description, /there is no separate `gitea_\*`\s+tool to call/)
+  assert.match(description, /gitea \{ operation: "gitea_issue_list", args:/)
+  // The payload stays close to the measured budget (#51).
+  assert.ok(Buffer.byteLength(description) < 9500, `description grew to ${Buffer.byteLength(description)} B`)
+})

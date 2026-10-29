@@ -710,3 +710,35 @@ the three plain session-handoff labels.
   a boot-level test through the registered `gitea` definition. 227 tests, leak
   scan clean. This is the second time the default surface caught a formatter
   that only worked on the typed one.
+
+## 2026-10-29 — tool-issue triage: #61, #67, #70 (+ #47)
+
+- Operator: "there are some new issues regarding our tools". Open queue read;
+  four were tool defects, three new since the last pass:
+  - **#70** `gitea_wiki get` metadata-only. Root cause was *not* the API: the
+    Forgejo 17 swagger (checked at `/swagger.v1.json`) carries
+    `content_base64`, but `wrap()` slims every record to `RECORD_KEYS` and drops
+    it — so #4's "API limitation" conclusion was the slim's fault. Fixed by
+    decoding from the raw response around the slim
+    (`withWikiBody()`), returning `content` / `contentBytes` / `truncated`,
+    capping at 20,000 chars, and keeping the metadata-only caveat for older
+    instances. Live check: the t14-bootcamp page came back with 15,754 bytes of
+    markdown through the dispatcher surface.
+  - **#67** dispatcher catalog read as callable tools. The description now says
+    "OPERATIONS, not tools", shows the call shape, and stays inside the payload
+    budget (+236 B). A direct call still fails at the harness level — that part
+    is not ours to intercept — but the description no longer invites it.
+  - **#61** `gitea_milestones` create/update printed raw JSON (no branch for a
+    single object) and the list printed JSON rows (`clipSnippet`). Both render
+    now; the action comes from the call arguments, unwrapped from the
+    dispatcher envelope (shared `callArguments()` helper, also used by #65).
+  - **#47** (old, open) `gitea_issue_templates` named `.gitea/ISSUE_TEMPLATE/`
+    while the handler reads the bundled `assets/issue-templates/`; text fixed
+    and pinned by a tool-def test.
+- Also re-measured the preset payload table with the rig the test uses
+  (registered definitions): `full` 65,383 B, `dispatcher` 9,227 B (7.1x), so the
+  README/CHANGELOG prose figures moved from ~60/~8.5 KB to ~64/~9 KB and the
+  table rows were refreshed. 235 tests, leak scan clean.
+- Live checks: wiki body (above) and `gitea_milestones list` →
+  `#4 "0.9.0" (open)`. #67's description change is definition-level, so it shows
+  up on the next surface registration — the AGENTS trap applies.

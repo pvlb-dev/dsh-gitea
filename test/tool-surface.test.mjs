@@ -136,3 +136,10 @@ bootTest('canonical tool renders receive the call arguments (#65)', () => {
   const out = def.output.render({ number: 64, body: 'hi' }, { ok: true, data: { id: 1, user: { login: 'dsh' } } })
   assert.match(out[0].text, /^Comment posted on PR #64 \(comment #1\) by @dsh\.$/)
 })
+
+test('gitea_issue_templates describes the bundled pack it actually reads (#47)', () => {
+  const def = TOOL_DEFS.find((d) => d.name === 'gitea_issue_templates')
+  assert.ok(def, 'the tool is declared')
+  assert.match(def.description, /assets\/issue-templates\//)
+  assert.match(def.description, /`dir`/, 'the override is documented')
+})

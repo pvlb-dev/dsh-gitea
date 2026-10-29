@@ -213,3 +213,34 @@ test('the dispatcher shape of the call arguments still yields the PR number (#65
   })
   assert.equal(out, 'Comment posted on PR #64 (comment #1056) by @dsh.')
 })
+
+// #61 — a single milestone object fell through describeUnknownObject(), and the
+// list rows printed raw JSON.
+test('gitea_milestones renders a created milestone (#61)', () => {
+  const out = text('gitea_milestones', ok({ id: 4, title: '0.9.0', state: 'open', open_issues: 3, closed_issues: 1, due_on: '2026-11-30T00:00:00Z' }), { action: 'create' })
+  assert.match(out, /^Milestone #4 "0\.9\.0" created \(open\)\./)
+  assert.match(out, /Due: 2026-11-30/)
+  assert.match(out, /Issues: 1\/4 closed/)
+  assert.doesNotMatch(out, /Unrecognised response/)
+})
+
+test('gitea_milestones renders an updated milestone and reads rows (#61)', () => {
+  const updated = text('gitea_milestones', ok({ id: 4, title: '0.9.0', state: 'closed' }), { action: 'update' })
+  assert.equal(updated, 'Milestone #4 "0.9.0" updated (closed).')
+  const list = text('gitea_milestones', ok([
+    { id: 4, title: '0.9.0', state: 'open', due_on: '2026-11-30T00:00:00Z' },
+    { id: 5, title: '0.9.1', state: 'closed' },
+  ]))
+  assert.equal(list.split('\n').length, 2)
+  assert.match(list, /^#4 "0\.9\.0" \(open\) — due 2026-11-30$/m)
+  assert.doesNotMatch(list, /\{/, 'no raw JSON rows')
+  assert.equal(text('gitea_milestones', ok([])), 'No milestones.')
+})
+
+test('gitea_milestones reads the action from the dispatcher envelope (#61)', () => {
+  const out = text('gitea_milestones', ok({ id: 7, title: '1.0', state: 'open' }), {
+    operation: 'gitea_milestones',
+    args: { action: 'update', title: '1.0' },
+  })
+  assert.equal(out, 'Milestone #7 "1.0" updated (open).')
+})

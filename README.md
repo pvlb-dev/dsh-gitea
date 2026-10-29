@@ -168,8 +168,8 @@ fall back to your usual repository.
 
 Every registered tool's schema is bound into every request, so the plugin has a
 preset switch. **The default is `dispatcher`** (since 0.8.9): two meta-tools that
-keep all 96 operations reachable while the always-on payload stays ~8.5 KB
-instead of ~60 KB. Set `preset: full` — in the config or the settings dropdown —
+keep all 96 operations reachable while the always-on payload stays ~9 KB
+instead of ~64 KB. Set `preset: full` — in the config or the settings dropdown —
 when you want the 96 typed tools as first-class functions, and narrow further
 when a workspace only files issues or only reviews pull requests.
 
@@ -182,17 +182,17 @@ when a workspace only files issues or only reviews pull requests.
     legacyAliases: false
 ```
 
-| Preset | Tools | Schema bytes | ≈ tokens |
+| Preset | Tools | Payload bytes | ≈ tokens |
 |:--|--:|--:|--:|
-| `dispatcher` (default) | 2 | 8,973 | ~2.4k |
-| `full` | 96 | 65,159 | ~17.6k |
-| `core` | 15 | 11,640 | ~3.1k |
-| `issues` | 22 | 15,586 | ~4.2k |
+| `dispatcher` (default) | 2 | 9,227 | ~2.5k |
+| `full` | 96 | 65,383 | ~17.6k |
+| `core` | 15 | 11,748 | ~3.2k |
+| `issues` | 22 | 15,702 | ~4.2k |
 | `prs` | 27 | 17,480 | ~4.7k |
-| `repos` | 17 | 12,026 | ~3.3k |
+| `repos` | 17 | 12,134 | ~3.3k |
 | `ops` | 30 | 20,067 | ~5.4k |
 | `none` | 0 | 0 | 0 |
-| `full` + `legacyAliases` | 133 | 107,157 | ~29k |
+| `full` + `legacyAliases` | 133 | 107,597 | ~29k |
 
 - `core` is the 15 hot tools; the domain presets are disjoint and their union is
   `full`. `*` is the only wildcard, and a pattern that matches nothing is
@@ -207,7 +207,9 @@ when a workspace only files issues or only reviews pull requests.
   operation }` (which returns one operation's JSON Schema as a tool result). The
   registry is **stable** — no dynamic registration — so the request prefix stays
   cacheable, and every operation is still reachable; `preset: full` swaps back to
-  the typed surface in one line. Configs that already saved a preset keep their
+  the typed surface in one line. The catalog names are **operations, not tools**:
+  the description says so and shows the call shape, because a direct
+  `gitea_issue_list` invocation can only fail at the harness level (#67). Configs that already saved a preset keep their
   value, so the flip only reaches installs that never chose one.
   The trade-off is measured, not theoretical: on five real triage tasks (2026-10)
   a step cost 41.1k tokens instead of 58.2k (−29 %), but the agents needed
@@ -302,7 +304,8 @@ tool plus a default action, so existing prompts and scripts keep working.
 - **`gitea_label_auto`** — preview the workflow actions an issue's labels
   imply; read-only.
 - **`gitea_milestones`** — list, create, update and delete milestones,
-  including due dates.
+  including due dates; create/update answer in prose (`Milestone #4 "0.9.0"
+  created (open)`) and the list is one readable row per milestone.
 - **`gitea_reactions`** — list, add or delete emoji reactions on issues and
   comments.
 
@@ -404,8 +407,10 @@ rails an autonomous agent needs.*
   event, or clear the buffer without touching the forge.
 - **`gitea_org`** — organization repos, members and teams, plus private
   repository creation.
-- **`gitea_wiki`** — list, read metadata, create, update and delete wiki
-  pages; page bodies live in `<repo>.wiki.git`, so `get` is metadata-only.
+- **`gitea_wiki`** — list, read, create, update and delete wiki pages. `get`
+  returns the metadata **and the markdown body** (Forgejo sends it base64 in
+  `content_base64`; the handler decodes it and caps the body at 20k characters),
+  so no wiki clone is needed for a read.
 - **`gitea_notifications`** — the authenticated user's notification list.
 - **`gitea_notifications_mark_read`** — mark them read; requires
   `confirm: true`.

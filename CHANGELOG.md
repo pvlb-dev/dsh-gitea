@@ -2,6 +2,46 @@
 
 ## [Unreleased]
 
+### #70 — `gitea_wiki get` returns the page body
+
+- **The body was never missing from the API — the record slim dropped it.**
+  `wrap()` normalises every Forgejo record down to `RECORD_KEYS`, which does not
+  include `content_base64`, so the base64 body vanished between the client and the
+  formatter; #4's "metadata only" note (and the docs repeating it) described that
+  loss, not an API limitation. `gitea_wiki get` now decodes `content_base64` from
+  the raw response, attaches `content` / `contentBytes` / `truncated` after the
+  slim, and caps the body at 20,000 characters. No wiki clone for a read; older
+  instances that omit the field keep the explicit metadata-only caveat.
+- Formatter prints `Content: <bytes> bytes` followed by the markdown; the tool
+  description and the README no longer teach the clone recipe. Tests: decode,
+  truncation, metadata-only fallback.
+
+### #67 — the dispatcher catalog says the names are operations, not tools
+
+- `buildDispatcherDescription()` now opens the catalog with "The names below are
+  OPERATIONS, not tools — there is no separate `gitea_*` tool to call" and shows
+  the call shape (`gitea { operation: "gitea_issue_list", args: … }`). A direct
+  `gitea_whoami` invocation still fails at the harness level, but the failure mode
+  is no longer invited by the description. +236 B of description.
+
+### #61 — milestone create/update (and the list) printed raw JSON
+
+- `formatToolResult()` had no branch for a **single** milestone object, so
+  `create`/`update` fell through `describeUnknownObject()`; the list rows fell
+  through `clipSnippet()` and printed JSON one object per line. Both are rendered
+  now: `Milestone #4 "0.9.0" created (open).` plus due date, description and
+  issue counts when present, and `#4 "0.9.0" (open) — due 2026-11-30` rows for the
+  list. The action is read from the call arguments (unwrapped from the dispatcher
+  envelope), so create and update differ on both surfaces.
+
+### #47 — `gitea_issue_templates` described a directory it does not read
+
+- The tool-def text claimed `.gitea/ISSUE_TEMPLATE/`; the handler reads the
+  plugin's bundled `assets/issue-templates/` (as `gitea_repo_bootstrap` installs
+  them). The description now names the bundled pack and documents `dir` as the
+  override. A plain tool-def test pins the text.
+
+
 ### Documentation
 
 - **The README has a hero illustration.** `assets/illustrations/whale-forge.jpg`
@@ -21,7 +61,7 @@
 - **New installs get the two-tool surface.** `Config.preset` now defaults to
   `dispatcher` (`DEFAULT_PRESET` in `lib/selection.js`) instead of `full`:
   `gitea { operation, args }` plus `gitea_help { operation }` keep all 96
-  operations reachable at ~8.5 KB of tool payload instead of ~60 KB. This is a
+  operations reachable at ~9 KB of tool payload instead of ~64 KB. This is a
   deliberate default change, not a fix — `preset: full` (config or settings
   dropdown) restores the 96 typed tools, and a config that already saved a
   preset keeps its value, so the flip only reaches installs that never chose

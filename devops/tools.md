@@ -40,7 +40,7 @@ Consumers mirror this table and link here.
 | empty/unknown results print a bare `OK` | `formatters.js` fallbacks | verify via REST or a second query | #5 | fixed in `4d77e9f` |
 | `gitea_labels list` hides numeric ids | generic array formatter | REST `/labels` | #7 | fixed in `4d77e9f` |
 | `gitea_repo_contents` returns the path | `formatters.js` `data.path` branch | clone, or REST `/contents/<path>` | #3 | fixed in `077ffc6` (body, 20 KB cap, root listing) |
-| `gitea_wiki get` returns no content | API is metadata-only; body lives in `<repo>.wiki.git` | metadata formatter + body caveat; clone the wiki repo for text | #4 | metadata fixed in `30ce29d`; body still needs clone |
+| `gitea_wiki get` returns no content | `wrap()` slims every record to `RECORD_KEYS`, which dropped `content_base64` (the API did carry the body); the formatter made the loss look like an API limitation | none | #4 | metadata fixed in `30ce29d`; **body returned since 0.8.9 (#70)**, capped at 20k chars |
 | `gitea_issue_create` drops labels/assignee/milestone | `issues.js` create handler + tool def | create, then `gitea_labels set` | #6 | fixed in `6941048` (names or ids) |
 | `gitea_label_bootstrap` uses the upstream taxonomy | `label-bootstrap.js` | create house labels by hand | #8 | fixed in `178a99f` (house default, upstream opt-in, truthful dry run) |
 | `gitea_wiki list` errors on an empty wiki | `listWikiPages` surfaced the API's 404 | none | #9 | fixed in `913013a` |
@@ -51,9 +51,12 @@ Consumers mirror this table and link here.
 | `gitea_wiki update` renames the page to `unnamed` | Forgejo applies its empty-title path when the PATCH has no title; the handler passed `title: undefined` | read the current page title back | #55 | fixed in 0.8.7 |
 | `gitea_flavor` prints `Unrecognised response` + clipped JSON | no formatter branch for the tool | none | #56 | fixed in 0.8.7 |
 | `gitea_flavor` says `gitea` on a Forgejo instance | version-only heuristic; Forgejo advertises `17.0.0+gitea-1.22.0` | none; detection now probes the web UI title | #57 | fixed in 0.8.7 |
-| `gitea_issue_templates` says it reads `.gitea/ISSUE_TEMPLATE/` | tool-def text is stale; the handler prefers the bundled `assets/issue-templates/` | describe the bundled pack in docs | #47 | open |
+| `gitea_issue_templates` says it reads `.gitea/ISSUE_TEMPLATE/` | tool-def text is stale; the handler prefers the bundled `assets/issue-templates/` | none | #47 | fixed on `feat/63-repo-link` (0.8.9): description names the bundled pack, `dir` is the override |
 | `gitea_pr_comment`/`gitea_pr_line_comment` print `Unrecognised response` + raw JSON | `formatters.js` has a `gitea_issue_comment` branch but none for the PR-side names, which hit the same comments endpoint; a comment object has no top-level `name`/`title`/`login`/`number`/`path`, so `describeUnknownObject()` matches nothing | the call itself succeeds — read the id/author from the JSON | #65 | fixed on `feat/63-repo-link` (0.8.9; `formatToolResult()` now takes the call args) |
 | `gitea_help` prints `Unrecognised response` + clipped JSON | `formatters.js` has no branch for the help payload `{ operation, help }`; the help tool's render passed `gitea` instead of `gitea_help` | none needed; the schema is in the JSON | #66 | fixed on `feat/63-repo-link` (0.8.9) |
+| `gitea_milestones` create/update print raw JSON, list rows print raw JSON | `formatToolResult()` had no branch for a single milestone object, and the generic array row fell through `clipSnippet()` | none | #61 | fixed on `feat/63-repo-link` (0.8.9) |
+| dispatcher catalog names read as callable tools; a direct call fails with the harness's bare `unknown tool` | the catalog listed bare `gitea_*` names without saying they are operations | none | #67 | fixed on `feat/63-repo-link` (0.8.9): the description says "OPERATIONS, not tools" and shows the call shape |
+| `gitea_wiki get` returns metadata only | see #4: the record slim dropped `content_base64` | clone the wiki repo | #70 | fixed on `feat/63-repo-link` (0.8.9): body decoded, 20k-char cap, `content`/`contentBytes`/`truncated` |
 
 Fixing a tool bug = one issue, one PR, a formatter test, and a row update in
 this table — same sitting.
