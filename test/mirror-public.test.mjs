@@ -24,6 +24,7 @@ import test from 'node:test'
 import { fileURLToPath } from 'node:url'
 
 import { RULES, buildSnapshot, sanitizeText } from '../scripts/mirror-public.mjs'
+import { sanitizeForPublic } from '../lib/mirror-public.js'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = resolve(HERE, '..')
@@ -168,7 +169,7 @@ test('sanitizes non-ASCII home paths without mangling the rest of the line', () 
   assert.equal(text, 'cd /home/user/dev/project && echo ok\n')
 })
 
-test('does not rewrite ordinary words that equal the host username', (t) => {
+test('ignores the host username and only scrubs explicit names (#46)', (t) => {
   const savedUser = process.env.USER
   const savedUsername = process.env.USERNAME
   t.after(() => {
@@ -177,11 +178,20 @@ test('does not rewrite ordinary words that equal the host username', (t) => {
     if (savedUsername === undefined) delete process.env.USERNAME
     else process.env.USERNAME = savedUsername
   })
-  process.env.USER = 'fixture'
+  process.env.USER = 'dsh'
+  process.env.USERNAME = 'dsh'
 
-  // sanitizeForPublic() would turn `\bfixture\b` into `user` if the guard
-  // regressed (on this host USER=dsh, which would corrupt `dsh-gitea`).
-  assert.equal(sanitizeText('package: fixture-dsh-gitea\n').text, 'package: fixture-dsh-gitea\n')
+  // #46 acceptance: `USER=dsh` must not corrupt the product name.
+  assert.equal(sanitizeForPublic('package: dsh-gitea\n'), 'package: dsh-gitea\n')
+  assert.equal(sanitizeForPublic('owner: dsh\n'), 'owner: dsh\n', 'env USER is not a scrub source')
+  assert.equal(sanitizeText('package: dsh-gitea\n').text, 'package: dsh-gitea\n')
+
+  // …while an explicit name is still scrubbed, as an option or a list.
+  assert.equal(
+    sanitizeForPublic('package: dsh-gitea\nmaintainer: pavel\n', { username: 'pavel' }),
+    'package: dsh-gitea\nmaintainer: user\n',
+  )
+  assert.equal(sanitizeForPublic('by anaïs', { usernames: ['anaïs'] }), 'by user')
 })
 
 test('fails and defangs a planted secret', (t) => {

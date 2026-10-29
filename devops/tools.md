@@ -46,7 +46,7 @@ Consumers mirror this table and link here.
 | `gitea_wiki list` errors on an empty wiki | `listWikiPages` surfaced the API's 404 | none | #9 | fixed in `913013a` |
 | `gitea_wiki` has no create/update/delete | handler/defs/client implemented only list/get | clone the wiki repo, commit, push | #10 | fixed in `fbca62a` |
 | Plugin Auto-Updater fails on global installs | `findDshCliEntry` walked the `dsh` symlink path, so `cliEntry` was undefined | manual `dsh plugin add <tarball>` | #44 | fixed in `e43e4ca` (0.8.1) |
-| `sanitizeForPublic` rewrites `dsh-gitea` to `user-gitea` when `USER=dsh` | env user scrubbed as a bare word | `scripts/mirror-public.mjs` clears `USER` around the call; direct `gitea_mirror_public` callers still hit it | #46 | open |
+| `sanitizeForPublic` rewrites `dsh-gitea` to `user-gitea` when `USER=dsh` | env `USER`/`USERNAME` scrubbed as a bare word | none | #46 | fixed on `feat/63-repo-link` (0.8.9): env users are not a scrub source; explicit `username`/`usernames` still are (home paths are rewritten separately) |
 | `gitea_issue_get`/`_list` hide labels, assignee and milestone | the formatter branches never read them | none needed; both now render the metadata | #52 | fixed in `4848dd7` (0.8.6) |
 | `gitea_wiki update` renames the page to `unnamed` | Forgejo applies its empty-title path when the PATCH has no title; the handler passed `title: undefined` | read the current page title back | #55 | fixed in 0.8.7 |
 | `gitea_flavor` prints `Unrecognised response` + clipped JSON | no formatter branch for the tool | none | #56 | fixed in 0.8.7 |

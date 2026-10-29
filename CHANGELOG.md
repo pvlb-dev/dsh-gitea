@@ -2,6 +2,29 @@
 
 ## [Unreleased]
 
+### #46 — the mirror sanitizer no longer eats product words
+
+- `sanitizeForPublic()` scrubbed `process.env.USER`/`USERNAME` as a bare word,
+  so on this host (`USER=dsh`) every `dsh-gitea` in a mirrored tree became
+  `user-gitea` while the report still said "sanitized". The env variables are no
+  longer a scrub source: home paths are rewritten by the generic `/home/<user>/`
+  rule, and a caller that wants a name scrubbed passes `username`/`usernames`
+  explicitly (still supported). `scripts/mirror-public.mjs` drops its
+  temporarily-unset-`USER` workaround, and a regression test sets `USER=dsh` and
+  asserts the product name survives + explicit names still scrub.
+
+### `gitea_issue_list` gained the `sort` parameter
+
+- The endpoint has always accepted `sort` (`latest` by default, `oldest`,
+  `recentupdate`, `leastupdate`, `mostcomment`, `leastcomment`, `nearduedate`,
+  `farduedate`, `relevance`; no `direction` in Forgejo 17), but the tool exposed
+  only `state`/`limit`/`page`, so the first natural call died with
+  `unknown argument "sort"`. It is now a schema enum with a handler-level check
+  that names the accepted values, and it is passed through to the API.
+- Tests: pass-through, case normalisation, omission (API default), and the
+  invalid-value error.
+
+
 ### #70 — `gitea_wiki get` returns the page body
 
 - **The body was never missing from the API — the record slim dropped it.**

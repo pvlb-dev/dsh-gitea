@@ -742,3 +742,22 @@ the three plain session-handoff labels.
 - Live checks: wiki body (above) and `gitea_milestones list` →
   `#4 "0.9.0" (open)`. #67's description change is definition-level, so it shows
   up on the next surface registration — the AGENTS trap applies.
+
+## 2026-10-30 — #46 mirror sanitizer + `gitea_issue_list` sort
+
+- **#46**: `sanitizeForPublic()` scrubbed `process.env.USER`/`USERNAME` as bare
+  words, so on this host (`USER=dsh`) a mirrored tree turned every `dsh-gitea`
+  into `user-gitea` — silent corruption in a publishing tool. Dropped the env
+  scrub entirely: home paths already go through `/home/<user>/`, and callers can
+  pass `username`/`usernames` explicitly (kept, tested). The script's
+  temporarily-unset-`USER` workaround (`sanitizeWithoutEnvUsers`) is gone, so no
+  `process.env` mutation during a synchronous sanitize. Regression test sets
+  `USER=dsh` and asserts the product name survives *and* explicit names scrub.
+- **`gitea_issue_list` sort**: the operator's first list call died with
+  `unknown argument "sort"`. Forgejo 17 has always accepted it (enum:
+  relevance, latest, oldest, recentupdate, leastupdate, mostcomment,
+  leastcomment, nearduedate, farduedate; no `direction`). Added as a schema enum
+  plus a handler check that names the values; lower-cased; omitted when unset so
+  the API default (`latest`) stays in charge.
+- 240 tests, leak scan clean; payload table re-measured (full 65,722 B,
+  dispatcher 9,253 B).

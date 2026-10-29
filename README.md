@@ -184,15 +184,15 @@ when a workspace only files issues or only reviews pull requests.
 
 | Preset | Tools | Payload bytes | ≈ tokens |
 |:--|--:|--:|--:|
-| `dispatcher` (default) | 2 | 9,227 | ~2.5k |
-| `full` | 96 | 65,383 | ~17.6k |
-| `core` | 15 | 11,748 | ~3.2k |
-| `issues` | 22 | 15,702 | ~4.2k |
+| `dispatcher` (default) | 2 | 9,253 | ~2.5k |
+| `full` | 96 | 65,722 | ~17.7k |
+| `core` | 15 | 12,087 | ~3.3k |
+| `issues` | 22 | 16,041 | ~4.3k |
 | `prs` | 27 | 17,480 | ~4.7k |
 | `repos` | 17 | 12,134 | ~3.3k |
 | `ops` | 30 | 20,067 | ~5.4k |
 | `none` | 0 | 0 | 0 |
-| `full` + `legacyAliases` | 133 | 107,597 | ~29k |
+| `full` + `legacyAliases` | 133 | 107,936 | ~29k |
 
 - `core` is the 15 hot tools; the domain presets are disjoint and their union is
   `full`. `*` is the only wildcard, and a pattern that matches nothing is
@@ -268,8 +268,9 @@ tool plus a default action, so existing prompts and scripts keep working.
 
 *The whole planning surface: file, triage, and keep a backlog honest.*
 
-- **`gitea_issue_list`** — issues by state with explicit paging; no silent
-  row cap.
+- **`gitea_issue_list`** — issues by state with explicit paging and the
+  endpoint's `sort` enum (`latest` by default, `recentupdate`, `mostcomment`,
+  `nearduedate`, …); no silent row cap.
 - **`gitea_issue_get`** — one issue, optionally with its comments.
 - **`gitea_issue_create`** — title, body, labels (names or numeric ids),
   assignee and milestone in one call.
