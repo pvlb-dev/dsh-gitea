@@ -12,6 +12,8 @@
 
 [安装](#安装) · [配置](#配置) · [工具集](#工具集) · [安全](#默认即安全) · [开发](#开发) · [npm](https://www.npmjs.com/package/dsh-gitea)
 
+<img src="assets/illustrations/whale-forge.jpg" alt="一头鲸鱼铁匠在锻炉边歇息，一手端着茶——一个打理得当的仓库该有的样子" width="860">
+
 </div>
 
 ---
@@ -151,7 +153,7 @@ DSH 的凭据存储会在文件变化时重新加载，并在每次调用时解�
 
 每个已注册工具的 schema 都会绑定进每一次请求，所以插件提供了预设开关。
 **默认是 `dispatcher`**（自 0.8.9 起）：两个元工具让全部 96 个操作保持可达，
-而常驻载荷约 8.5 KB 而非约 60 KB。想把这 96 个工具当作一等函数调用时，在配置
+而常驻载荷约 9 KB 而非约 64 KB。想把这 96 个工具当作一等函数调用时，在配置
 或设置下拉框里选 `preset: full`；如果某个工作区只提 issue 或只评审 PR，可以
 再收窄。
 
@@ -164,17 +166,17 @@ DSH 的凭据存储会在文件变化时重新加载，并在每次调用时解�
     legacyAliases: false
 ```
 
-| 预设 | 工具数 | Schema 字节 | ≈ Token 数 |
+| 预设 | 工具数 | 载荷字节 | ≈ Token 数 |
 |:--|--:|--:|--:|
-| `dispatcher`（默认） | 2 | 8,973 | ~2.4k |
-| `full` | 96 | 65,159 | ~17.6k |
-| `core` | 15 | 11,640 | ~3.1k |
-| `issues` | 22 | 15,586 | ~4.2k |
+| `dispatcher`（默认） | 2 | 9,253 | ~2.5k |
+| `full` | 96 | 65,722 | ~17.7k |
+| `core` | 15 | 12,087 | ~3.3k |
+| `issues` | 22 | 16,041 | ~4.3k |
 | `prs` | 27 | 17,480 | ~4.7k |
-| `repos` | 17 | 12,026 | ~3.3k |
+| `repos` | 17 | 12,134 | ~3.3k |
 | `ops` | 30 | 20,067 | ~5.4k |
 | `none` | 0 | 0 | 0 |
-| `full` + `legacyAliases` | 133 | 107,157 | ~29k |
+| `full` + `legacyAliases` | 133 | 107,936 | ~29k |
 
 - `core` 是 15 个高频工具；领域预设互不重叠，并集即 `full`。`*` 是唯一的
   通配符，匹配不到任何工具的模式会在设置表单和日志中报告，而不是被静默忽略。
@@ -187,8 +189,9 @@ DSH 的凭据存储会在文件变化时重新加载，并在每次调用时解�
   工具，`gitea { operation, args }` 和 `gitea_help { operation }`（以工具结果
   返回某个操作的 JSON Schema）。注册表是**稳定**的 —— 不做动态注册 —— 因此
   请求前缀可缓存，同时每个操作仍然可达；`preset: full` 一行即可换回类型化
-  工具面。已经保存过预设的配置会保留自己的值，所以这个默认值只影响从未选择
-  过预设的安装。
+  工具面。目录里的名字是**操作，不是工具**：描述里写明了这一点并给出调用
+  形态，因为直接调用 `gitea_issue_list` 只会在 harness 层失败（#67）。已经
+  保存过预设的配置会保留自己的值，所以这个默认值只影响从未选择过预设的安装。
   代价是实测的，不是理论值：在五个真实分诊任务上（2026-10），每一步花费
   41.1k token 而非 58.2k（−29%），但 agent 需要多 30% 的步骤（help 往返和
   参数名重试），所以**总**量只低约 8%，按成本加权（缓存命中 ≈ 0.26× 新请求）
@@ -241,7 +244,9 @@ DSH 的凭据存储会在文件变化时重新加载，并在每次调用时解�
 
 *完整的规划工具面：提交、分诊，让 backlog 保持诚实。*
 
-- **`gitea_issue_list`** —— 按状态列 issue，分页显式；没有静默的行数上限。
+- **`gitea_issue_list`** —— 按状态列 issue，分页显式，并支持该端点的 `sort`
+  枚举（默认 `latest`，还有 `recentupdate`、`mostcomment`、`nearduedate` 等）；
+  没有静默的行数上限。
 - **`gitea_issue_get`** —— 单个 issue，可选带评论。
 - **`gitea_issue_create`** —— 一次调用设置标题、正文、标签（名称或数字 id）、
   assignee 和里程碑。
@@ -270,7 +275,9 @@ DSH 的凭据存储会在文件变化时重新加载，并在每次调用时解�
 - **`gitea_label_bootstrap`** —— 幂等同步 pvlb.dev 内部标签集（或旧的
   “upstream” 分类）；除非应用，否则试运行，且从不删除外部标签。
 - **`gitea_label_auto`** —— 预览 issue 标签所隐含的工作流动作；只读。
-- **`gitea_milestones`** —— 列出、创建、更新和删除里程碑，包括截止日期。
+- **`gitea_milestones`** —— 列出、创建、更新和删除里程碑，包括截止日期；
+  创建/更新以文字回答（`Milestone #4 "0.9.0" created (open)`），列表每个
+  里程碑一行。
 - **`gitea_reactions`** —— 列出、添加或删除 issue 与评论上的 emoji reaction。
 
 ### 评审与合并：Pull Request、评审与门禁 —— 27 个工具
@@ -363,8 +370,9 @@ DSH 的凭据存储会在文件变化时重新加载，并在每次调用时解�
 - **`gitea_webhook_sandbox`** —— 检查缓冲的入站 webhook、重放事件，或清空
   缓冲而不触碰 forge。
 - **`gitea_org`** —— 组织仓库、成员和团队，以及创建私有仓库。
-- **`gitea_wiki`** —— 列出、读取元数据、创建、更新和删除 wiki 页面；页面
-  正文在 `<repo>.wiki.git` 中，所以 `get` 只有元数据。
+- **`gitea_wiki`** —— 列出、读取、创建、更新和删除 wiki 页面。`get` 返回
+  元数据**和 markdown 正文**（Forgejo 以 base64 放在 `content_base64` 中，
+  handler 会解码并把正文限制在 2 万字符以内），所以读取不再需要 clone 仓库。
 - **`gitea_notifications`** —— 已认证用户的通知列表。
 - **`gitea_notifications_mark_read`** —— 标记已读；需要 `confirm: true`。
 - **`gitea_user_search`** —— 在实例上查找用户。
@@ -639,6 +647,7 @@ npm stage approve <stage-id>
 | `.forgejo/workflows/` | `ci.yml`（push 检查）、`publish.yml`（tag → Forgejo registry）和 `publish-npmjs.yml`（tag → npmjs） |
 | `scripts/` | `dev-link-dsh.mjs`（`link:` bootstrap）和 `leak-scan.mjs`（卫生门禁） |
 | `test/*.test.mjs` | 本 fork 的回归套件（`npm test`） |
+| `assets/illustrations/` | README 头图（`whale-forge.jpg`）；出处见其 README |
 | `assets/screenshots/` | README 里的 Git 侧栏截图（#63） |
 | `README.zh.md` | 本 README 的中文翻译，三个语言版本的头部互相链接 |
 | `README.ru.md` | 本 README 的俄语翻译，三个语言版本的头部互相链接 |
