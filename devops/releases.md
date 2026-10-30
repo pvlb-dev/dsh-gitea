@@ -20,18 +20,19 @@ an accident. The updater is double-gated: the loopback request fence in
 
 ## Versioning and tags
 
-- Fork version: `0.8.8` (Host-authoritative preset list; 0.8.7 was
-  dropdown fix + flavor/wiki defects; 0.8.6 was
-  dispatcher preset + issue metadata; 0.8.5 was
-  tool-surface presets + opt-in aliases, 0.8.4 staged npmjs publishing, 0.8.3
-  publish config, 0.8.2 README + peer-range). Earlier builds used
-  `<upstream base>-dsh.<n>`; hotfixes can use `0.8.8-dsh.<n>` if needed.
-- **Next: `0.8.9`, not cut.** Unreleased entries: #63 (Git-sidebar repository
-  link), #65/#66 (PR-comment and `gitea_help` formatters), the trilingual
-  README, and **`dispatcher` as the Config default** (0.8.9 flips
-  `DEFAULT_PRESET` in `lib/selection.js`; `preset: full` is the documented
-  escape and configs that saved a preset keep it). Bundle a few issues before
-  tagging — see [Bundled releases](#bundled-releases-and-the-on-server-test-phase).
+- Fork version: `0.8.9` (2026-10-30): `dispatcher` is the Config default,
+  trilingual README + hero illustration, Git-sidebar repository link (#63),
+  the PR-comment/`gitea_help`/milestone formatters (#65/#66/#61), the wiki body
+  (#70), the dispatcher catalog wording (#67), the issue-list `sort`, and the
+  mirror sanitizer fix (#46). 0.8.8 was the Host-authoritative preset list;
+  0.8.7 dropdown + flavor/wiki defects; 0.8.6 dispatcher preset + issue
+  metadata; 0.8.5 tool-surface presets + opt-in aliases; 0.8.4 staged npmjs
+  publishing; 0.8.3 publish config; 0.8.2 README + peer-range. Earlier builds
+  used `<upstream base>-dsh.<n>`; hotfixes can use `0.8.9-dsh.<n>`.
+- **Next: `0.9.0`, not cut.** It is the history-compaction release (see
+  [`upstream.md`](upstream.md)); nothing is scheduled for it yet. Bundle a few
+  issues before tagging — see
+  [Bundled releases](#bundled-releases-and-the-on-server-test-phase).
 - Tag every state that is live on the server as `v<version>` (for example
   `v0.8.1`). Rollback = `git checkout <tag>`, toggle the bundle off/on,
   hard-refresh.

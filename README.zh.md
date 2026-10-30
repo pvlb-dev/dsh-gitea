@@ -612,10 +612,10 @@ npm stage approve <stage-id>
 
 版本管理：
 
-- 当前 fork 版本 `0.8.8`，tag `v0.8.8`；更早的构建使用
+- 当前 fork 版本 `0.8.9`，tag `v0.8.9`；更早的构建使用
   `<upstream base>-dsh.<n>`（例如 `0.7.40-dsh.7`），hotfix 可以使用
-  `0.8.8-dsh.<n>`。服务器上每个生效状态都要打 tag。
-- 回滚：`git checkout v0.8.8`，把 bundle 关掉再打开，硬刷新。
+  `0.8.9-dsh.<n>`。服务器上每个生效状态都要打 tag。
+- 回滚：`git checkout v0.8.9`，把 bundle 关掉再打开，硬刷新。
 - `CHANGELOG.md` 每个 release 加一条 fork 条目；上游条目保持不动。
 - 让 `peerDependencies` 中的 DSH 范围跟上 Harness 预发布线（当前包含
   `>=0.1.7-rc.2 <0.2.0-0`、`>=0.2.0-rc.1 <0.3.0-0` 和

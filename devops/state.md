@@ -3,9 +3,9 @@
 Part of the dsh-gitea manual. The map is [`../AGENTS.md`](../AGENTS.md); the
 install/reload loop is in [`deploy.md`](deploy.md).
 
-**Current version: `0.8.8`; the next release is `0.8.9`, not cut.** The
-version policy and the unreleased entries are in
-[`releases.md`](releases.md#versioning-and-tags).
+**Current version: `0.8.9` (tagged 2026-10-30); the next release is
+`0.9.0` (history compaction), not cut.** The version policy and the
+unreleased entries are in [`releases.md`](releases.md#versioning-and-tags).
 
 ## This deployment (facts checked on 2026-10-27)
 

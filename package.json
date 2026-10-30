@@ -1,6 +1,6 @@
 {
   "name": "dsh-gitea",
-  "version": "0.8.8",
+  "version": "0.8.9",
   "description": "Gitea/Forgejo integration for DeepSeek Harness: 96 first-class tools for issues, pull requests, reviews, releases, CI, packages, wiki and worktrees (133 registered names with compatibility aliases), plus a settings UI and a live Git status chip.",
   "type": "module",
   "main": "lib/index.js",

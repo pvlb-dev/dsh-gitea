@@ -675,10 +675,10 @@ npm stage approve <stage-id>
 
 Versioning:
 
-- Current fork version `0.8.8`, tag `v0.8.8`; earlier builds used
+- Current fork version `0.8.9`, tag `v0.8.9`; earlier builds used
   `<upstream base>-dsh.<n>` (for example `0.7.40-dsh.7`), hotfixes may use
-  `0.8.8-dsh.<n>`. Tag every state that is live on the server.
-- Rollback: `git checkout v0.8.8`, toggle the bundle off and on, hard-refresh.
+  `0.8.9-dsh.<n>`. Tag every state that is live on the server.
+- Rollback: `git checkout v0.8.9`, toggle the bundle off and on, hard-refresh.
 - `CHANGELOG.md` gets a fork entry per release; upstream entries stay intact.
 - Keep the `peerDependencies` DSH range in step with the Harness prerelease
   line (it currently names `>=0.1.7-rc.2 <0.2.0-0`, `>=0.2.0-rc.1 <0.3.0-0` and

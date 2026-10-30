@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.8.9] - 2026-10-30
 
 ### #46 — the mirror sanitizer no longer eats product words
 
@@ -156,7 +156,7 @@
 - Tests: `test/repo-link.test.mjs` covers the remote forms, the scheme rules,
   the config fallback, the hide switch and the client rendering contract.
 
-### Documentation
+### Documentation — the trilingual README
 
 - **The README is trilingual again.** `README.zh.md` and `README.ru.md` are
   full translations of the English README (same structure, tables and tool
