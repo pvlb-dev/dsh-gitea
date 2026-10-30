@@ -761,3 +761,36 @@ the three plain session-handoff labels.
   the API default (`latest`) stays in charge.
 - 240 tests, leak scan clean; payload table re-measured (full 65,722 B,
   dispatcher 9,253 B).
+
+## 2026-10-30 — 0.8.9: translations, README audit, merge and release
+
+- Operator: "check the readme if it's still up to date, translate it to the
+  side-languages and pack everything up into a 0.8.9 update."
+- **README audit** found one class of stale facts beyond the diff: the
+  "Versioning" paragraphs in all three manuals still said `0.8.8` — updated
+  with the bump. Everything else (96/37 counts, install, verify, troubleshooting,
+  `<version>` placeholders) was current.
+- **Translations** refreshed against `README.md` since `4c45ada`: hero
+  illustration (translated alt text), the current payload table and prose
+  figures, the "operations, not tools" sentence (#67), the `sort` enum,
+  milestone prose (#61), the wiki body (#70) and the new
+  `assets/illustrations/` row. Heading parity kept (15 h2 / 9 h3).
+- **Release**: PR #64 merged to `master` (merge commit `e1c1864`), then
+  `d9bb3fc` chore(release): 0.8.9 — package.json, CHANGELOG `[0.8.9] -
+  2026-10-30`, README version refs, `devops/state.md`, `devops/releases.md`
+  (next: 0.9.0, history compaction). `npm run check` 240 tests, leak scan
+  clean; `npm pack --dry-run` 481.8 kB / 107 files. Tag `v0.8.9` pushed.
+- **Workflows**: ci.yml on the release commit passed; the Forgejo registry now
+  lists `0.8.9`; the release page (id 87) carries the notes and the
+  `dsh-gitea-0.8.9.tgz` asset. The script names a release after the first
+  `###` heading, which was "#46 …" (the first changelog section), so the page
+  was renamed to "v0.8.9 — dispatcher by default, Git-sidebar repo link,
+  formatter and wiki fixes" via `gitea_releases update`; the body stayed.
+- **npmjs** still shows `latest = 0.8.7`; the staged versions wait for a
+  maintainer `npm stage approve <id>` with 2FA (0.8.8 was never approved
+  either). Nothing to fix in code; the operator's call.
+- Host migration heads-up from the operator: a new server (8 GiB RAM) becomes
+  the DSH host tomorrow, the user is renamed `dsh` → `deeps`, the home moves
+  with it, the Forgejo stays on this box. Deployment facts in
+  `devops/state.md` / `devops/deploy.md` will need updating in the first
+  session there; filed as a `NaNs` handoff.
