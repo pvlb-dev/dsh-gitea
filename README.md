@@ -1,6 +1,8 @@
-# 🏴 dsh-gitea
-
 <div align="center">
+
+# 🏴 dsh-gitea <img src="assets/logos/gitea.svg" alt="Gitea" width="36"> <img src="assets/logos/forgejo.svg" alt="Forgejo" width="36">
+
+🇬🇧 **English** | 🇨🇳 [中文](README.zh.md) | 🇷🇺 [Русский](README.ru.md)
 
 **Gitea/Forgejo, driven from your DeepSeek Harness session.**
 
@@ -10,6 +12,8 @@ Main repo on [pvlb.dev/dsh-plugins/dsh-gitea](https://git.pvlb.dev/dsh-plugins/d
 
 [Install](#install) · [Configure](#configure) · [The toolset](#the-toolset) · [Safety](#safety-by-default) · [Development](#development) · [npm](https://www.npmjs.com/package/dsh-gitea)
 
+<img src="assets/illustrations/whale-forge.jpg" alt="A whale blacksmith resting at the forge, tea in one hand — the mood of a well-run repository" width="860">
+
 </div>
 
 ---
@@ -18,7 +22,8 @@ Main repo on [pvlb.dev/dsh-plugins/dsh-gitea](https://git.pvlb.dev/dsh-plugins/d
 
 `dsh-gitea` connects a DeepSeek Harness session to your own Gitea or Forgejo
 instance: the agent gets 96 first-class, schema-declared tools for issues, pull
-requests, reviews, CI, releases and repositories, and you get a
+requests, reviews, CI, releases and repositories (by default through the 2-tool
+`dispatcher`, which serves each operation's schema on demand), and you get a
 **Settings → Gitea** page plus a **Git status chip** in the session header.
 Nothing is scraped from a web page — every call is a typed tool over the REST
 API, with your token resolved from DSH credentials at call time.
@@ -56,6 +61,14 @@ follow-up issue without leaving the chat.
 - **Work where the repo lives.** Git worktrees for isolated branches, a
   commit graph in the UI, and an issue → branch → worktree → PR flow that
   keeps the issue and the code in sync.
+
+<div align="center">
+
+<img src="assets/screenshots/git-sidebar-drawer.jpg" alt="The Git drawer: repository link, branch, sync state, changes and recent commits" width="420">
+
+*The Git drawer — repository link, branch, sync state, changes and recent commits.*
+
+</div>
 
 ## Requirements
 
@@ -154,29 +167,32 @@ fall back to your usual repository.
 ### Tool surface — keep the payload small
 
 Every registered tool's schema is bound into every request, so the plugin has a
-preset switch. The default is `full` (all 96 canonical tools); narrow it when a
-workspace only files issues or only reviews pull requests.
+preset switch. **The default is `dispatcher`** (since 0.8.9): two meta-tools that
+keep all 96 operations reachable while the always-on payload stays ~9 KB
+instead of ~64 KB. Set `preset: full` — in the config or the settings dropdown —
+when you want the 96 typed tools as first-class functions, and narrow further
+when a workspace only files issues or only reviews pull requests.
 
 ```yaml
 - id: dsh-gitea
   config:
-    preset: core        # core | issues | prs | repos | ops | dispatcher | full | none | custom
+    preset: dispatcher  # dispatcher (default) | core | issues | prs | repos | ops | full | none | custom
     tools: []           # glob allowlist; non-empty replaces the preset
     excludeTools: []    # patterns removed after the preset/allowlist
     legacyAliases: false
 ```
 
-| Preset | Tools | Schema bytes | ≈ tokens |
+| Preset | Tools | Payload bytes | ≈ tokens |
 |:--|--:|--:|--:|
-| `full` (default) | 96 | 65,159 | ~17.6k |
-| `core` | 15 | 11,640 | ~3.1k |
-| `issues` | 22 | 15,586 | ~4.2k |
+| `dispatcher` (default) | 2 | 9,253 | ~2.5k |
+| `full` | 96 | 65,722 | ~17.7k |
+| `core` | 15 | 12,087 | ~3.3k |
+| `issues` | 22 | 16,041 | ~4.3k |
 | `prs` | 27 | 17,480 | ~4.7k |
-| `repos` | 17 | 12,026 | ~3.3k |
+| `repos` | 17 | 12,134 | ~3.3k |
 | `ops` | 30 | 20,067 | ~5.4k |
-| `dispatcher` | 2 | 8,973 | ~2.4k |
 | `none` | 0 | 0 | 0 |
-| `full` + `legacyAliases` | 133 | 107,157 | ~29k |
+| `full` + `legacyAliases` | 133 | 107,936 | ~29k |
 
 - `core` is the 15 hot tools; the domain presets are disjoint and their union is
   `full`. `*` is the only wildcard, and a pattern that matches nothing is
@@ -186,10 +202,15 @@ workspace only files issues or only reviews pull requests.
   payload; an alias call still resolves even when it is not advertised.
 - Saving a different surface re-registers the tools immediately (no restart).
   `preset: none` is for workspaces where the agent should not see Gitea tools.
-- `dispatcher` is the smallest surface: two meta-tools, `gitea { operation,
-  args }` and `gitea_help { operation }` (which returns one operation's JSON
-  Schema as a tool result). The registry is **stable** — no dynamic registration
-  — so the request prefix stays cacheable, and every operation is still reachable.
+- `dispatcher` was the opt-in preset in 0.8.6–0.8.8 and is the **default since
+  0.8.9**. Two meta-tools, `gitea { operation, args }` and `gitea_help {
+  operation }` (which returns one operation's JSON Schema as a tool result). The
+  registry is **stable** — no dynamic registration — so the request prefix stays
+  cacheable, and every operation is still reachable; `preset: full` swaps back to
+  the typed surface in one line. The catalog names are **operations, not tools**:
+  the description says so and shows the call shape, because a direct
+  `gitea_issue_list` invocation can only fail at the harness level (#67). Configs that already saved a preset keep their
+  value, so the flip only reaches installs that never chose one.
   The trade-off is measured, not theoretical: on five real triage tasks (2026-10)
   a step cost 41.1k tokens instead of 58.2k (−29 %), but the agents needed
   +30 % steps (help round trips and argument-name retries), so the **total** was
@@ -221,9 +242,10 @@ workspace only files issues or only reviews pull requests.
 
 ## The toolset
 
-**96 first-class tools** (all advertised by the `full` preset) plus **37
-compatibility aliases** that are opt-in since 0.8.5. Repository-scoped tools take
-optional `owner`/`repo` (falling back to
+**96 first-class tools** (all advertised by the `full` preset — the default
+`dispatcher` preset reaches every one of them through its two meta-tools) plus
+**37 compatibility aliases** that are opt-in since 0.8.5. Repository-scoped tools
+take optional `owner`/`repo` (falling back to
 `defaultOwner`/`defaultRepo`, then to the session's git origin), and every
 tool accepts an `instance` selector for multi-instance setups. Destructive
 tools require `confirm: true` and the riskier helpers are dry-run-first, so an
@@ -246,8 +268,9 @@ tool plus a default action, so existing prompts and scripts keep working.
 
 *The whole planning surface: file, triage, and keep a backlog honest.*
 
-- **`gitea_issue_list`** — issues by state with explicit paging; no silent
-  row cap.
+- **`gitea_issue_list`** — issues by state with explicit paging and the
+  endpoint's `sort` enum (`latest` by default, `recentupdate`, `mostcomment`,
+  `nearduedate`, …); no silent row cap.
 - **`gitea_issue_get`** — one issue, optionally with its comments.
 - **`gitea_issue_create`** — title, body, labels (names or numeric ids),
   assignee and milestone in one call.
@@ -282,7 +305,8 @@ tool plus a default action, so existing prompts and scripts keep working.
 - **`gitea_label_auto`** — preview the workflow actions an issue's labels
   imply; read-only.
 - **`gitea_milestones`** — list, create, update and delete milestones,
-  including due dates.
+  including due dates; create/update answer in prose (`Milestone #4 "0.9.0"
+  created (open)`) and the list is one readable row per milestone.
 - **`gitea_reactions`** — list, add or delete emoji reactions on issues and
   comments.
 
@@ -384,8 +408,10 @@ rails an autonomous agent needs.*
   event, or clear the buffer without touching the forge.
 - **`gitea_org`** — organization repos, members and teams, plus private
   repository creation.
-- **`gitea_wiki`** — list, read metadata, create, update and delete wiki
-  pages; page bodies live in `<repo>.wiki.git`, so `get` is metadata-only.
+- **`gitea_wiki`** — list, read, create, update and delete wiki pages. `get`
+  returns the metadata **and the markdown body** (Forgejo sends it base64 in
+  `content_base64`; the handler decodes it and caps the body at 20k characters),
+  so no wiki clone is needed for a read.
 - **`gitea_notifications`** — the authenticated user's notification list.
 - **`gitea_notifications_mark_read`** — mark them read; requires
   `confirm: true`.
@@ -452,7 +478,10 @@ remote pages, and only ever accepts a credential reference — never a token.
 branch, a dirty marker, ahead/behind counts, the open PR number, `CI✗` when
 its checks fail, and a mirror-lag warning. One click opens a drawer with four
 tabs: **Status**, **Graph & CI** (commit graph with per-commit CI statuses),
-**Events & PRs** (live event feed and PR context) and **Hub**.
+**Events & PRs** (live event feed and PR context) and **Hub**. The drawer
+header starts with the **Gitea or Forgejo logo and the repository name as one
+link** to the repository's web page — the URL comes from the checkout's
+`origin` remote, and the icon (Forgejo, Gitea or hidden) is a setting.
 
 **Webhooks in, events out.** Point a Gitea/Forgejo webhook at
 `POST /dsh-gitea/webhook` and the payload is verified with HMAC-SHA256 using
@@ -621,7 +650,8 @@ Four Forgejo Actions workflows in `.forgejo/workflows/`:
   the public publish.
 - `package.json` is public (`publishConfig.access: public`), so both jobs
   publish the same tarball; `files` keeps the package to `lib/`, `assets/`,
-  `cordis.patch.yml`, `README.md` and `LICENSE`.
+  `cordis.patch.yml`, `README.md`, `README.zh.md`, `README.ru.md` and
+  `LICENSE`.
 - No `pull_request` trigger on purpose: the shared runner gives job containers
   the host's rootless Docker socket, so only maintainer-controlled events may
   execute a workflow.
@@ -645,10 +675,10 @@ npm stage approve <stage-id>
 
 Versioning:
 
-- Current fork version `0.8.4`, tag `v0.8.4`; earlier builds used
+- Current fork version `0.8.8`, tag `v0.8.8`; earlier builds used
   `<upstream base>-dsh.<n>` (for example `0.7.40-dsh.7`), hotfixes may use
-  `0.8.4-dsh.<n>`. Tag every state that is live on the server.
-- Rollback: `git checkout v0.8.4`, toggle the bundle off and on, hard-refresh.
+  `0.8.8-dsh.<n>`. Tag every state that is live on the server.
+- Rollback: `git checkout v0.8.8`, toggle the bundle off and on, hard-refresh.
 - `CHANGELOG.md` gets a fork entry per release; upstream entries stay intact.
 - Keep the `peerDependencies` DSH range in step with the Harness prerelease
   line (it currently names `>=0.1.7-rc.2 <0.2.0-0`, `>=0.2.0-rc.1 <0.3.0-0` and
@@ -683,6 +713,10 @@ Updater:
 | `.forgejo/workflows/` | `ci.yml` (push checks), `publish.yml` (tag → Forgejo registry) and `publish-npmjs.yml` (tag → npmjs) |
 | `scripts/` | `dev-link-dsh.mjs` (`link:` bootstrap) and `leak-scan.mjs` (hygiene gate) |
 | `test/*.test.mjs` | The fork's regression suite (`npm test`) |
+| `assets/illustrations/` | README hero illustration (`whale-forge.jpg`); provenance in its README |
+| `assets/screenshots/` | README screenshot of the Git drawer (#63) |
+| `README.zh.md` | Chinese translation of this README, linked from all three language headers |
+| `README.ru.md` | Russian translation of this README, linked from all three language headers |
 | `AGENTS.md` | Deep operational notes: DSH slot matrix, settings contract, install/reload runbooks, failure table |
 
 ## License

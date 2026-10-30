@@ -27,13 +27,17 @@ const bootTest = (name, fn) => test(name, { skip: skipReason }, fn)
 // ctx.effect, so a recording stub is enough to observe the advertised surface.
 function fakeContext() {
   const registered = []
+  const definitions = []
   const ctx = {
     tools: {
       register(definition) {
         registered.push(definition.name)
+        definitions.push(definition)
         return () => {
           const index = registered.indexOf(definition.name)
           if (index >= 0) registered.splice(index, 1)
+          const defIndex = definitions.indexOf(definition)
+          if (defIndex >= 0) definitions.splice(defIndex, 1)
         }
       },
     },
@@ -50,7 +54,7 @@ function fakeContext() {
     credentials: { describe: async () => ({ configured: false }) },
     execFile: async () => ({ stdout: '', stderr: '' }),
   }
-  return { ctx, registered }
+  return { ctx, registered, definitions }
 }
 
 const boot = (config = {}) => {
@@ -61,8 +65,17 @@ const boot = (config = {}) => {
 
 const canonical = TOOL_DEFS.map((def) => def.name)
 
-bootTest('default boot advertises the canonical surface and no aliases (#48)', () => {
+bootTest('default boot advertises the dispatcher surface (0.8.9)', () => {
+  // The Config default is `preset: dispatcher` since 0.8.9; the typed 96-tool
+  // surface now needs an explicit `preset: full` (see dispatcher.test.mjs).
   const names = boot()
+  assert.equal(names.length, 2)
+  assert.deepEqual(names, ['gitea', 'gitea_help'], 'two meta-tools, stable names')
+  assert.ok(!names.includes('gitea_issue_set_labels'), 'deprecated alias not advertised')
+})
+
+bootTest('preset: full advertises the canonical surface and no aliases (#48)', () => {
+  const names = boot({ preset: 'full' })
   assert.equal(names.length, 96)
   assert.deepEqual(names, canonical, 'full preset keeps TOOL_DEFS order')
   assert.ok(!names.includes('gitea_issue_set_labels'), 'deprecated alias not advertised')
@@ -71,7 +84,7 @@ bootTest('default boot advertises the canonical surface and no aliases (#48)', (
 })
 
 bootTest('legacyAliases: true restores the 0.8.4 name set (#48)', () => {
-  const names = boot({ legacyAliases: true })
+  const names = boot({ preset: 'full', legacyAliases: true })
   assert.equal(names.length, 133)
   assert.ok(names.includes('gitea_issue_set_labels'))
   assert.ok(names.includes('gitea_repo_branches'))
@@ -111,4 +124,22 @@ bootTest('excludeTools subtracts and unmatched patterns are ignored (#49)', () =
 
 bootTest('an unknown preset fails at mount with a clear message (#49)', () => {
   assert.throws(() => boot({ preset: 'nope' }), /unknown tool preset "nope"/)
+})
+
+bootTest('canonical tool renders receive the call arguments (#65)', () => {
+  // The PR-comment formatters read the PR number from `args`, because the Forgejo
+  // payload does not carry it. The Host render closures must forward `args`.
+  const { ctx, definitions } = fakeContext()
+  apply(ctx, { baseUrl: 'https://example.test', tokenEnv: 'GITEA_TOKEN', preset: 'full' })
+  const def = definitions.find((d) => d.name === 'gitea_pr_comment')
+  assert.ok(def, 'gitea_pr_comment is registered by the full preset')
+  const out = def.output.render({ number: 64, body: 'hi' }, { ok: true, data: { id: 1, user: { login: 'dsh' } } })
+  assert.match(out[0].text, /^Comment posted on PR #64 \(comment #1\) by @dsh\.$/)
+})
+
+test('gitea_issue_templates describes the bundled pack it actually reads (#47)', () => {
+  const def = TOOL_DEFS.find((d) => d.name === 'gitea_issue_templates')
+  assert.ok(def, 'the tool is declared')
+  assert.match(def.description, /assets\/issue-templates\//)
+  assert.match(def.description, /`dir`/, 'the override is documented')
 })

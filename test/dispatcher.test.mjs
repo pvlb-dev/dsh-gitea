@@ -150,10 +150,56 @@ bootTest('preset: dispatcher registers exactly the two meta-tools (#51)', () => 
   assert.deepEqual(definitions.map((def) => def.name), [DISPATCHER_NAME, HELP_NAME])
 })
 
+bootTest('preset: dispatcher is the Config default (0.8.9)', () => {
+  // A default boot advertises the dispatcher surface; `preset: full` is the
+  // documented way back to the typed tools.
+  assert.deepEqual(boot().map((def) => def.name), [DISPATCHER_NAME, HELP_NAME])
+})
+
 bootTest('the dispatcher surface is much smaller than full', () => {
-  const full = wireBytes(boot())
+  const full = wireBytes(boot({ preset: 'full' }))
   const dispatcher = wireBytes(boot({ preset: 'dispatcher' }))
   assert.ok(dispatcher < full / 5, `dispatcher ${dispatcher} B must be well under full ${full} B`)
   // Both are recorded on the issue; print them so a re-run is self-documenting.
   console.log(`#51 surface bytes: full ${full} B, dispatcher ${dispatcher} B (${(full / dispatcher).toFixed(1)}x smaller)`)
+})
+
+bootTest('the registered gitea_help tool renders the schema (#66)', () => {
+  // End-to-end through the definition `apply()` registers: the render must be
+  // the help text, because that is how an agent on the default surface reads
+  // any operation's schema (#66).
+  const help = boot({ preset: 'dispatcher' }).find((def) => def.name === HELP_NAME)
+  assert.ok(help, 'the help tool is registered')
+  const rendered = help.output.render(
+    { operation: 'gitea_pr_get' },
+    { ok: true, data: { operation: 'gitea_pr_get', help: 'gitea_pr_get\n\nGet a PR.' } },
+  )
+  assert.equal(rendered[0].text, 'gitea_pr_get\n\nGet a PR.')
+  const failed = help.output.render(
+    { operation: 'gitea_nope' },
+    { ok: false, error: 'unknown operation "gitea_nope"' },
+  )
+  assert.match(failed[0].text, /^gitea_help failed: unknown operation/)
+})
+
+bootTest('the dispatcher render unwraps nested call arguments for the formatter (#65)', () => {
+  // The default surface routes every call through `gitea { operation, args }`;
+  // a formatter that needs call data (the PR number, #65) must see the inner
+  // `args`, not the envelope.
+  const definition = boot({ preset: 'dispatcher' }).find((def) => def.name === DISPATCHER_NAME)
+  assert.ok(definition, 'the dispatcher tool is registered by the default preset')
+  const out = definition.output.render(
+    { operation: 'gitea_pr_comment', args: { number: 64, body: 'hi' } },
+    { ok: true, data: { id: 7, user: { login: 'dsh' } } },
+  )
+  assert.equal(out[0].text, 'Comment posted on PR #64 (comment #7) by @dsh.')
+})
+
+test('the catalog says the names are operations, not tools (#67)', () => {
+  const description = buildDispatcherDescription(TOOL_DEFS)
+  assert.match(description, /OPERATIONS, not tools/)
+  assert.match(description, /there is no separate `gitea_\*`\s+tool to call/)
+  assert.match(description, /gitea \{ operation: "gitea_issue_list", args:/)
+  // The payload stays close to the measured budget (#51).
+  assert.ok(Buffer.byteLength(description) < 9500, `description grew to ${Buffer.byteLength(description)} B`)
 })

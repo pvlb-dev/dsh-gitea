@@ -243,3 +243,57 @@ test('wiki update on a missing page still surfaces the failure (#55)', async () 
   assert.equal(res.ok, false)
   assert.match(text('gitea_wiki', res), /not found/)
 })
+
+// #70 — Forgejo returns the page body base64-encoded in `content_base64`; the
+// handler decodes it so a read no longer needs a wiki clone.
+test('wiki get decodes content_base64 into the markdown body (#70)', async () => {
+  const body = '# DSH Bootcamp\n\nWelcome.\n'
+  const client = fakeClient({
+    async getWikiPage() {
+      return {
+        ok: true,
+        data: {
+          title: 'DSH Bootcamp',
+          sub_url: 'DSH-Bootcamp',
+          html_url: 'https://git.example/acme/docs/wiki/DSH-Bootcamp',
+          content_base64: Buffer.from(body, 'utf8').toString('base64'),
+          last_commit: { sha: 'abcdef1234567890', message: 'init' },
+        },
+      }
+    },
+  })
+  const res = await callWiki({ action: 'get', pageName: 'DSH-Bootcamp' }, client)
+  assert.equal(res.ok, true)
+  assert.equal(res.data.content, body)
+  assert.equal(res.data.content_base64, undefined, 'the base64 blob is replaced, not echoed')
+  assert.equal(res.data.contentBytes, Buffer.byteLength(body, 'utf8'))
+  assert.equal(res.data.truncated, false)
+  const out = text('gitea_wiki', res)
+  assert.match(out, /Wiki page: DSH Bootcamp/)
+  assert.match(out, /Content: \d+ bytes/)
+  assert.match(out, /# DSH Bootcamp/)
+})
+
+test('wiki get caps a huge body and says it was truncated (#70)', async () => {
+  const body = 'x'.repeat(25000)
+  const client = fakeClient({
+    async getWikiPage() {
+      return { ok: true, data: { title: 'Big', content_base64: Buffer.from(body, 'utf8').toString('base64') } }
+    },
+  })
+  const res = await callWiki({ action: 'get', pageName: 'Big' }, client)
+  assert.equal(res.data.content.length, 20000)
+  assert.equal(res.data.truncated, true)
+  assert.equal(res.data.contentBytes, 25000)
+  assert.match(text('gitea_wiki', res), /\(truncated\)/)
+})
+
+test('wiki get keeps the metadata-only caveat when the instance omits the body (#70)', async () => {
+  const client = fakeClient({
+    async getWikiPage() { return { ok: true, data: { title: 'Home', sub_url: 'Home' } } },
+  })
+  const res = await callWiki({ action: 'get', pageName: 'Home' }, client)
+  const out = text('gitea_wiki', res)
+  assert.match(out, /not available from the REST API/)
+  assert.doesNotMatch(out, /Content: \d+ bytes/)
+})

@@ -1,5 +1,176 @@
 # Changelog
 
+## [Unreleased]
+
+### #46 — the mirror sanitizer no longer eats product words
+
+- `sanitizeForPublic()` scrubbed `process.env.USER`/`USERNAME` as a bare word,
+  so on this host (`USER=dsh`) every `dsh-gitea` in a mirrored tree became
+  `user-gitea` while the report still said "sanitized". The env variables are no
+  longer a scrub source: home paths are rewritten by the generic `/home/<user>/`
+  rule, and a caller that wants a name scrubbed passes `username`/`usernames`
+  explicitly (still supported). `scripts/mirror-public.mjs` drops its
+  temporarily-unset-`USER` workaround, and a regression test sets `USER=dsh` and
+  asserts the product name survives + explicit names still scrub.
+
+### `gitea_issue_list` gained the `sort` parameter
+
+- The endpoint has always accepted `sort` (`latest` by default, `oldest`,
+  `recentupdate`, `leastupdate`, `mostcomment`, `leastcomment`, `nearduedate`,
+  `farduedate`, `relevance`; no `direction` in Forgejo 17), but the tool exposed
+  only `state`/`limit`/`page`, so the first natural call died with
+  `unknown argument "sort"`. It is now a schema enum with a handler-level check
+  that names the accepted values, and it is passed through to the API.
+- Tests: pass-through, case normalisation, omission (API default), and the
+  invalid-value error.
+
+
+### #70 — `gitea_wiki get` returns the page body
+
+- **The body was never missing from the API — the record slim dropped it.**
+  `wrap()` normalises every Forgejo record down to `RECORD_KEYS`, which does not
+  include `content_base64`, so the base64 body vanished between the client and the
+  formatter; #4's "metadata only" note (and the docs repeating it) described that
+  loss, not an API limitation. `gitea_wiki get` now decodes `content_base64` from
+  the raw response, attaches `content` / `contentBytes` / `truncated` after the
+  slim, and caps the body at 20,000 characters. No wiki clone for a read; older
+  instances that omit the field keep the explicit metadata-only caveat.
+- Formatter prints `Content: <bytes> bytes` followed by the markdown; the tool
+  description and the README no longer teach the clone recipe. Tests: decode,
+  truncation, metadata-only fallback.
+
+### #67 — the dispatcher catalog says the names are operations, not tools
+
+- `buildDispatcherDescription()` now opens the catalog with "The names below are
+  OPERATIONS, not tools — there is no separate `gitea_*` tool to call" and shows
+  the call shape (`gitea { operation: "gitea_issue_list", args: … }`). A direct
+  `gitea_whoami` invocation still fails at the harness level, but the failure mode
+  is no longer invited by the description. +236 B of description.
+
+### #61 — milestone create/update (and the list) printed raw JSON
+
+- `formatToolResult()` had no branch for a **single** milestone object, so
+  `create`/`update` fell through `describeUnknownObject()`; the list rows fell
+  through `clipSnippet()` and printed JSON one object per line. Both are rendered
+  now: `Milestone #4 "0.9.0" created (open).` plus due date, description and
+  issue counts when present, and `#4 "0.9.0" (open) — due 2026-11-30` rows for the
+  list. The action is read from the call arguments (unwrapped from the dispatcher
+  envelope), so create and update differ on both surfaces.
+
+### #47 — `gitea_issue_templates` described a directory it does not read
+
+- The tool-def text claimed `.gitea/ISSUE_TEMPLATE/`; the handler reads the
+  plugin's bundled `assets/issue-templates/` (as `gitea_repo_bootstrap` installs
+  them). The description now names the bundled pack and documents `dir` as the
+  override. A plain tool-def test pins the text.
+
+
+### Documentation
+
+- **The README has a hero illustration.** `assets/illustrations/whale-forge.jpg`
+  — a whale blacksmith resting at the forge, tea in hand — sits in the header
+  block (displayed at 860 px, stored at 1600 px / 196 KB, downscaled from the
+  original so the repo and the npm tarball stay small). Provenance in
+  `assets/illustrations/README.md`.
+- **Translation policy: English first, translations at release time.**
+  `README.md` is updated in the same commit as the change it describes;
+  `README.zh.md` and `README.ru.md` are refreshed in the release pass before the
+  tag. Recorded in `AGENTS.md` (session protocol) and the `devops/workflow.md`
+  and `devops/releases.md` topics, so a future session does not slow a change
+  down by rewriting three manuals.
+
+### The tool surface defaults to `dispatcher`
+
+- **New installs get the two-tool surface.** `Config.preset` now defaults to
+  `dispatcher` (`DEFAULT_PRESET` in `lib/selection.js`) instead of `full`:
+  `gitea { operation, args }` plus `gitea_help { operation }` keep all 96
+  operations reachable at ~9 KB of tool payload instead of ~64 KB. This is a
+  deliberate default change, not a fix — `preset: full` (config or settings
+  dropdown) restores the 96 typed tools, and a config that already saved a
+  preset keeps its value, so the flip only reaches installs that never chose
+  one.
+- The settings hint, the form's fallback value and the Host's initial
+  `toolState` all follow the one constant, so a payload without `preset` can no
+  longer render `full` and save it back over the new default. The stale
+  "experiment branch only" note in `lib/dispatcher.js` is gone.
+- README (EN/ZH/RU) documents the new default next to the measured trade-off
+  from #51: per-step payload −29 %, +30 % steps, total ~8 % lower and
+  cost-weighted level — a wash on short tasks, a modest win past ~10 steps.
+- Tests: a default boot registers exactly `gitea` + `gitea_help`;
+  `preset: full` still produces the canonical 96 tools in `TOOL_DEFS` order; the
+  Host schema default, the client fallback and `DEFAULT_PRESET` are asserted to
+  agree.
+
+### #66 — `gitea_help` printed "Unrecognised response"
+
+- **The schema fetcher of the default surface now returns the schema.**
+  `formatToolResult()` had no branch for the help payload `{ operation, help }`,
+  so it fell through to `describeUnknownObject()`: every `gitea_help` call
+  answered `Unrecognised response` plus clipped JSON — the one tool an agent
+  needs to read any operation's schema on the `dispatcher` surface.
+- `lib/index.js` formats the help tool as `gitea_help` (not as the dispatcher),
+  and `lib/handlers/formatters.js` renders `data.help` as text. The error path
+  already worked (`gitea_help failed: <reason>`).
+- Tests: a formatter check and an end-to-end check through the definition
+  `apply()` registers.
+
+### #65 — the PR comment tools printed "Unrecognised response"
+
+- **`gitea_pr_comment` and `gitea_pr_line_comment` answer in prose now.**
+  `formatToolResult()` had a `gitea_issue_comment` branch but none for the two
+  PR-side names, which hit the same comments endpoint: the payload — an issue
+  comment, or a *review* carrying one comment — has no top-level
+  `name`/`title`/`number`/`login`/`path`, so `describeUnknownObject()` matched
+  nothing and the call printed `Unrecognised response` plus raw JSON. The call
+  itself always succeeded, which is why the workaround was "read the id/author
+  from the JSON".
+- The PR number is not in either payload, so `formatToolResult()` takes the call
+  arguments as a third parameter and the Host render closures forward them
+  (canonical tool, legacy alias, and the dispatcher path). The rendered line is
+  `Comment posted on PR #64 (comment #1046) by @dsh.` or, for a line comment,
+  `Line comment posted on PR #64 (review #77, comment #78) by @dsh.` followed by
+  `Path: lib/x.js:12`. Through the `dispatcher` surface the arguments arrive
+  nested as `{ operation, args }`, which the formatter unwraps, so the PR number
+  survives the default surface too.
+- Tests: formatter checks for both payload shapes, the no-metadata fallback, and
+  a boot-level check that the registered render receives `args`.
+
+### #63 — the Git sidebar links to its repository
+
+- **The Git drawer header now links to the repository.** The logo and the
+  repository name form one link, first in the header row —
+  `[logo repo-name][branch]` — and open the repository's web page in a new tab
+  (`target="_blank"`, `rel="noopener noreferrer"`).
+- The URL is derived from the checkout's **`origin` remote** — SSH
+  (`ssh://git@host/owner/repo.git`), scp-like (`git@host:owner/repo.git`) and
+  HTTPS forms, with `.git`, the default SSH port and deeper paths removed — so
+  the link follows the repository the session is actually in. `defaultOwner` /
+  `defaultRepo` (e.g. `dsh` / `vps-setup` on this box) are only the fallback for
+  a checkout without a usable remote.
+- **Settings → Gitea → Git sidebar repository icon** chooses Forgejo
+  (default), Gitea, or Hidden. The field is volatile and persists through the
+  normal config route.
+- `/dsh-gitea/git-status` gains an additive `repoLink: { url, icon }` field; no
+  new endpoint, request or credential. The bundled logos and their attribution
+  live in `assets/logos/`.
+- Tests: `test/repo-link.test.mjs` covers the remote forms, the scheme rules,
+  the config fallback, the hide switch and the client rendering contract.
+
+### Documentation
+
+- **The README is trilingual again.** `README.zh.md` and `README.ru.md` are
+  full translations of the English README (same structure, tables and tool
+  reference), linked as `English | 中文 | Русский` from all three headers.
+  Upstream had `README.zh.md`/`README.ru.md`; the fork had dropped them, and
+  both were rebuilt against the current English README rather than restored
+  from the 0.4-era files.
+- **The Git drawer screenshot sits after the feature list**
+  (`assets/screenshots/git-sidebar-drawer.jpg`), showing the repository link
+  from #63. The screenshot ships in the tarball, and `README.zh.md` /
+  `README.ru.md` join `package.json → files`. The header carries the Gitea and
+  Forgejo logos (repo-local SVGs) and flag language links in all three
+  languages.
+
 ## [0.8.8] - 2026-10-25
 
 ### The Host owns the preset list

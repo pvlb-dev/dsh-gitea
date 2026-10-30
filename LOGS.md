@@ -8,6 +8,36 @@ when you need the reasoning or the provenance behind a change.
 Nothing here is required to operate the plugin: `README.md` is the user manual,
 `AGENTS.md` is the agent manual, and this file is the lab notebook.
 
+## Session index
+
+One line per session, oldest first; the sections below are the detail.
+
+| Date | Release | Session |
+|:--|:--|:--|
+| 2026-10-22 | — | Settings UI restored: `settings.section` seat, route-backed form, HTTP-guard 403 fix |
+| 2026-10-22 | — | Fork hardening: updater off-switch, fork docs, regression tests |
+| 2026-10-23 | — | Tool trust patch (#2/#5/#7), branch renamed to `master`, house taxonomy |
+| 2026-10-23 | — | CI, publishing and the own-registry updater |
+| 2026-10-23 | — | Package renamed to `dsh-gitea`, runtime dependency dropped |
+| 2026-10-23 | 0.7.40-dsh.5 | Event panel locale fix |
+| 2026-10-24 | 0.7.40-dsh.6 | Updater PATH and error visibility |
+| 2026-10-24 | 0.7.40-dsh.7 | Tarball installs, default-registry safety |
+| 2026-10-24 | — | Wiki read/write fixes (#9/#4/#10) |
+| 2026-10-24 | — | Remaining tool bugs closed (#3/#6/#8) |
+| 2026-10-24 | 0.8.0 | QA sweep: 20 issues (#19–#38) in four batches |
+| 2026-10-24 | 0.8.1 | Updater symlink fix (#44) |
+| 2026-10-24 | 0.8.2 | Public README, public repo, GitHub mirror path |
+| 2026-10-24 | 0.8.3 | First public npmjs release |
+| 2026-10-24 | 0.8.4 | Staged npmjs publishing (`npm stage publish`) |
+| 2026-10-24 | — | Generated Forgejo release pages + wiki template |
+| 2026-10-24 | 0.8.5 | Tool-surface presets + opt-in aliases (#48/#49) |
+| 2026-10-25 | — | #51 dispatcher spike measured (real triage runs) |
+| 2026-10-25 | 0.8.6 | Dispatcher preset + issue metadata (#51/#52) |
+| 2026-10-25 | 0.8.7 | Preset dropdown + wiki rename + flavor render/detection (#55/#56/#57) |
+| 2026-10-25 | 0.8.8 | Host-authoritative preset list (stale-Host skew) |
+| 2026-10-25 | — (unreleased) | #63 Git-sidebar repository link; bundled-release + on-server test-phase policy; trilingual README (EN/ZH/RU) + drawer screenshot; `dispatcher` becomes the default preset (`DEFAULT_PRESET`); #66 `gitea_help` formatter fix; #65 PR-comment formatters |
+| 2026-10-27 | — | Bootcamp sync: AGENTS.md split into a map + `devops/` topics, input box, `note`/`NaNs` handoffs |
+
 ## Session log (2026-10-22)
 
 Diagnosis and changes made while restoring the settings UI:
@@ -501,3 +531,233 @@ produced an option the Host rejects.
    module under HMR; a module changed earlier by a branch merge may stay stale
    in the running process. When a Host constant looks wrong but the checkout is
    right, toggle the bundle (or restart `dsh web`) rather than editing code.
+
+## Session log — #63 repository link, bundled releases (unreleased, 2026-10-25)
+
+Issue #63 asked for a clickable Gitea/Forgejo logo in the Git drawer. Placement
+changed after the operator's first live look: the combined *logo + repository
+name* link is the first item in the header row (`[logo repo-name][branch]`),
+not an icon after the branch badge. Assessment: small UI feature, no API or
+schema breakage; the only real risk is that `lib/client.js` is generated output.
+
+1. `lib/repo-link.js` (new): `parseRemoteWebUrl` covers `ssh://`, scp-like
+   `git@host:owner/repo.git` and HTTPS origins, dropping `.git`, `:22` and
+   deeper paths; `buildRepoLink` applies the icon choice (`forgejo` default,
+   `gitea`, `none`), the `forceHttps` setting and the `defaultOwner` /
+   `defaultRepo` fallback.
+2. `lib/git-local.js` now returns `remoteUrl` in the snapshot; `/git-status`
+   adds `repoLink`. That route is already polled every 4 s, so the link costs
+   no extra request. The link is deliberately **not** derived from
+   `defaultOwner`/`defaultRepo` — on this box those are `dsh`/`vps-setup`,
+   while the checkout's origin is `dsh-plugins/dsh-gitea`.
+3. `lib/client.js`: logo data URIs (`assets/logos/` holds sources + attribution;
+   Forgejo is CC BY-SA 4.0), the `[logo repo-name]` anchor first in the header
+   row, the settings select and both locale dictionaries. Data URI `<img>`
+   keeps the Forgejo SVG's internal `<style>` out of the app DOM.
+4. `lib/index.js`: `repoLinkIcon` volatile Config field, Forgejo default.
+5. `test/repo-link.test.mjs`: 7 tests; `npm run check` is 216 tests, leak scan
+   clean.
+6. Process, not a release: the only build is a `v*` tag, so this sits on
+   `feat/63-repo-link` (and `[Unreleased]` in `CHANGELOG.md`) until a bundle is
+   worth shipping. `AGENTS.md` now records the bundled-release and on-server
+   test-phase policy. Live visual verification (drawer header, settings select)
+   still needs the operator: HMR covers the Host half, the client bundle needs
+   a toggle/restart plus a hard refresh.
+7. Docs follow-up on the same branch: the operator's web-edit added
+   `English | [中文](README.zh.md)`, so `README.zh.md` is a full translation of
+   the (now longer) English README rather than the stale upstream 334-line one;
+   `package.json → files` ships it. The operator's screenshot became the README
+   hero (`assets/screenshots/git-sidebar-drawer.jpg`), showing the #63 link in
+   the drawer header.
+8. The operator then asked for Russian too ("english | chinese | russian"):
+   `README.ru.md` is a fresh full translation of the current English README
+   (the dropped upstream file was 0.4-era), and all three headers now carry
+   the `English | 中文 | Русский` switcher. Both translations and the
+   screenshot ship in the tarball; `npm run check` and `npm pack --dry-run`
+   were re-run after the change. No version bump, no tag.
+9. The operator edited the English README in the forge (417e1d0): Gitea and
+   Forgejo logos in the H1, flag-prefixed language links, and the drawer
+   screenshot moved from the hero to the end of the feature list. Mirrored in
+   `README.zh.md` and `README.ru.md`; two cleanups in the source edit: the
+   bare attachment URL under the H1 was dropped, and the logos use the
+   repo-local `assets/logos/*.svg` instead of forge attachment URLs so the
+   GitHub mirror renders them. The header `<div align="center">` was closed
+   after the table of contents (the operator's edit left it spanning the prose
+   sections) and the screenshot got its own centered block. No release.
+10. The operator asked whether the `dispatcher` preset should become the
+    standard config, with two live cost-detail screenshots (a local
+    LinA/RAT session: 394 calls, gitea 4.7 % of spend; the whale-noises
+    session here: gitea 15 % + bash+gitea 8.2 %) and the "Tools updated · 2
+    added, 144 removed" toast from an upgraded chat. Answer: yes, with
+    conditions. Measured before flipping: the full surface is 60.6 KB of tool
+    payload, the dispatcher description (catalog of all 96 operations) is
+    8.5 KB — 7.3× smaller — but #51 already measured the other half of the
+    trade-off (+30 % steps, total ~8 % lower, cost-weighted level). So the
+    default is justified by surface footprint and tool-choice noise, not by a
+    token win, and `preset: full` stays a documented one-liner. `Config.preset`
+    now defaults to `DEFAULT_PRESET` (`dispatcher`) in `lib/selection.js`; the
+    client form fallback and the Host's initial `toolState` follow it, so a
+    payload without `preset` cannot render `full` and save it back. The stale
+    "EXPERIMENT BRANCH ONLY" header in `lib/dispatcher.js` now records the real
+    history (0.8.6 opt-in → 0.8.9 default). Tests: default boot is exactly
+    `gitea` + `gitea_help`, `preset: full` keeps the canonical 96 in
+    `TOOL_DEFS` order, and the schema default / client fallback / constant are
+    asserted to agree — 219 tests at that point. Note for the operator: this profile's patch
+    already pins `preset: dispatcher` (saved through the form at 12:56 UTC), so
+    the flip mainly matters for installs that never saved one; and the running
+    Host currently advertises the 96 canonical tools *plus* the 2 meta-tools,
+    a hot-reapply artifact that a bundle toggle collapses to the configured
+    surface. Still no tag.
+11. Found while answering (10): `gitea_help` — half of the new default surface —
+    printed `Unrecognised response` plus clipped JSON instead of the schema.
+    `formatToolResult()` had no branch for the help payload `{ operation, help }`,
+    and the help tool's render passed `gitea` instead of `gitea_help`, so it fell
+    through to `describeUnknownObject()`. Filed as **#66** with the one-line repro,
+    fixed the same sitting: a `gitea_help` branch in
+    `lib/handlers/formatters.js` renders `data.help` as text, the render passes
+    `HELP_NAME`, and two tests cover it (formatter level, plus the definition
+    `apply()` registers end to end) — 221 tests, leak scan clean. Live check via
+    the running plugin after HMR. No release.
+12. #65 is the same failure shape as #66, so it joined the bundle. Both
+    `gitea_pr_comment` (a Forgejo issue-comment payload) and
+    `gitea_pr_line_comment` (a *review* payload carrying one comment) had no
+    `formatToolResult()` branch, and neither payload has a top-level
+    `name`/`title`/`number`/`login`/`path`, so `describeUnknownObject()` matched
+    nothing: `Unrecognised response` plus raw JSON, while the call itself
+    succeeded. Fixed by rendering both shapes in prose; the PR number only exists
+    in the call arguments, so `formatToolResult()` gained an `args` parameter and
+    the canonical, legacy-alias and dispatcher render closures forward it — that
+    forwarding is what makes the fix work on the new default surface. 225 tests,
+    leak scan clean. The live check (posting the PR note on #64) showed the prose
+    render immediately but fell back to "the pull request" without `PR #64`: the
+    formatter is a live module binding, the earlier-registered render closure is
+    not, so the args half needs a re-registration (bundle toggle/restart). AGENTS
+    now records that split. No release.
+
+## Session log — bootcamp sync, map split (2026-10-27)
+
+The operator pointed at the updated bootcamp
+(<https://git.pvlb.dev/pvlb-infra/vps-setup/wiki/DSH-Bootcamp>; cloned over
+SSH because the wiki is private) and asked for this workspace to follow it. The
+page gained a house style since the last sync: `AGENTS.md` is a **map**, not the
+manual; a project has an `input/` drop box; and `note` / `NaNs` / `bootcamp` are
+the three plain session-handoff labels.
+
+- `AGENTS.md` went from 43.7 KB to ~9 KB: orientation, the contract, a trigger
+  table, the five traps, the repo layout, the session protocol and the
+  65,536-byte instruction-budget rule. The existing sections moved (lightly
+  edited for cross-references) into `devops/`:
+  - `architecture.md` — what the plugin is, Host/Client halves, the slot
+    matrix, the Settings contract, the HTTP routes;
+  - `tools.md` — the tool surface (presets, aliases, `dispatcher`) plus the
+    known-bug table and the QA sweep index;
+  - `releases.md` — versioning, the four workflows, npmjs staging, the release
+    ritual, bundled-release policy;
+  - `upstream.md` — fork status, upstream sync, the GitHub mirror, history
+    compaction;
+  - `state.md` — deployment facts and the current version;
+  - `deploy.md` — install/dev loop, verification limits, common failures,
+    security invariants, known limitations;
+  - `workflow.md` — session protocol, input box, handoffs, docs budget.
+- The repo now has the **input box**: `input` (mode 120000) →
+  `devops/input/`, the README tracked and `devops/input/*` gitignored, so a drop
+  never leaves a dirty tree.
+- `GIT.md` copied from `pvlb-dev` and gitignored, per the bootcamp.
+- **Verified:** `npm run check` (225 tests, leak scan, `node --check`); no code
+  changed, so the suite is unchanged. `wc -c` shows the map at 9,214 bytes and
+  every topic below 24 KB; every `devops/*.md` and `GIT.md` is linked from the
+  map, which is what the nightly healthcheck's orphan rule checks.
+- Committed as `docs: split AGENTS.md into a map and topic files` and pushed to
+  `origin/master`; no release (docs only).
+- Follow-up questions in the same session. **Approvals:** the platform does
+  have one-shot tool approvals (`dsh-user-approval` + the browser
+  `dsh-client-ui-approval` panel), but they only fire for calls that raise a
+  request — sandbox-escalation retries, `plugin_manager` tool actions, PTC
+  `run_code` — not for ordinary plugin tool use; no session log on this box has
+  ever recorded an `approval/asked` event. **Webhooks:** yes, a Forgejo 17
+  hook can start a DSH session on issue assignment in-process via
+  `ctx.sessionController.create()` + `.prompt()`; research note and proposal:
+  [`devops/webhooks.md`](devops/webhooks.md), tracked as #69 (nothing built,
+  and the live profile has no webhook secret, so the route is 401 today).
+
+## 2026-10-27 — README hero illustration and the "English first" policy
+
+- Operator supplied a generated illustration (whale blacksmith at the forge,
+  tea in hand) for the README. Downscaled 2741×1530 → **1600×893, 196 KB**
+  (sharp in a throwaway `/tmp/imgwork` project; the box has no ImageMagick and
+  the npm cache was root-owned, so `--cache /tmp/npm-cache-dsh`), stored as
+  `assets/illustrations/whale-forge.jpg`, displayed at 860 px in the header
+  block of `README.md`. Provenance in `assets/illustrations/README.md`; the
+  npm tarball goes from ~275 KB to ~479 KB, which is why the downscale is the
+  default and the policy below caps README images at ~200 KB.
+- The operator paired it with a **docs policy change**: keep `README.md`
+  current with every change, and translate `README.zh.md` / `README.ru.md` in
+  the release pass instead of per change. Recorded where the new map says it
+  belongs: a one-line rule in `AGENTS.md`'s session protocol pointing at a new
+  "Docs and translations" section in `devops/workflow.md`, and the tag-time
+  step in `devops/releases.md` (release ritual + test phase step 5). Shared
+  media lives once under `assets/`, so an image change is one README edit and
+  the translations inherit it when they are refreshed.
+- Verified: `npm run check` (225 tests, leak scan clean — binary assets are
+  skipped by the scanner), `npm pack --dry-run` lists
+  `assets/illustrations/whale-forge.jpg` and the new README. No release.
+- Follow-up inside the same session: the first PR comment from the new
+  **dispatcher** surface rendered `Comment posted on the pull request
+  (comment #1396) by @dsh.` — prose, no raw JSON, but without `PR #64`.
+  Dispatcher calls deliver the formatter `{ operation, args }`, so the PR number
+  sits one level down; #65's branch now unwraps `args.args` before reading it
+  (`lib/handlers/formatters.js`), with a formatter test for the nested shape and
+  a boot-level test through the registered `gitea` definition. 227 tests, leak
+  scan clean. This is the second time the default surface caught a formatter
+  that only worked on the typed one.
+
+## 2026-10-29 — tool-issue triage: #61, #67, #70 (+ #47)
+
+- Operator: "there are some new issues regarding our tools". Open queue read;
+  four were tool defects, three new since the last pass:
+  - **#70** `gitea_wiki get` metadata-only. Root cause was *not* the API: the
+    Forgejo 17 swagger (checked at `/swagger.v1.json`) carries
+    `content_base64`, but `wrap()` slims every record to `RECORD_KEYS` and drops
+    it — so #4's "API limitation" conclusion was the slim's fault. Fixed by
+    decoding from the raw response around the slim
+    (`withWikiBody()`), returning `content` / `contentBytes` / `truncated`,
+    capping at 20,000 chars, and keeping the metadata-only caveat for older
+    instances. Live check: the t14-bootcamp page came back with 15,754 bytes of
+    markdown through the dispatcher surface.
+  - **#67** dispatcher catalog read as callable tools. The description now says
+    "OPERATIONS, not tools", shows the call shape, and stays inside the payload
+    budget (+236 B). A direct call still fails at the harness level — that part
+    is not ours to intercept — but the description no longer invites it.
+  - **#61** `gitea_milestones` create/update printed raw JSON (no branch for a
+    single object) and the list printed JSON rows (`clipSnippet`). Both render
+    now; the action comes from the call arguments, unwrapped from the
+    dispatcher envelope (shared `callArguments()` helper, also used by #65).
+  - **#47** (old, open) `gitea_issue_templates` named `.gitea/ISSUE_TEMPLATE/`
+    while the handler reads the bundled `assets/issue-templates/`; text fixed
+    and pinned by a tool-def test.
+- Also re-measured the preset payload table with the rig the test uses
+  (registered definitions): `full` 65,383 B, `dispatcher` 9,227 B (7.1x), so the
+  README/CHANGELOG prose figures moved from ~60/~8.5 KB to ~64/~9 KB and the
+  table rows were refreshed. 235 tests, leak scan clean.
+- Live checks: wiki body (above) and `gitea_milestones list` →
+  `#4 "0.9.0" (open)`. #67's description change is definition-level, so it shows
+  up on the next surface registration — the AGENTS trap applies.
+
+## 2026-10-30 — #46 mirror sanitizer + `gitea_issue_list` sort
+
+- **#46**: `sanitizeForPublic()` scrubbed `process.env.USER`/`USERNAME` as bare
+  words, so on this host (`USER=dsh`) a mirrored tree turned every `dsh-gitea`
+  into `user-gitea` — silent corruption in a publishing tool. Dropped the env
+  scrub entirely: home paths already go through `/home/<user>/`, and callers can
+  pass `username`/`usernames` explicitly (kept, tested). The script's
+  temporarily-unset-`USER` workaround (`sanitizeWithoutEnvUsers`) is gone, so no
+  `process.env` mutation during a synchronous sanitize. Regression test sets
+  `USER=dsh` and asserts the product name survives *and* explicit names scrub.
+- **`gitea_issue_list` sort**: the operator's first list call died with
+  `unknown argument "sort"`. Forgejo 17 has always accepted it (enum:
+  relevance, latest, oldest, recentupdate, leastupdate, mostcomment,
+  leastcomment, nearduedate, farduedate; no `direction`). Added as a schema enum
+  plus a handler check that names the values; lower-cased; omitted when unset so
+  the API default (`latest`) stays in charge.
+- 240 tests, leak scan clean; payload table re-measured (full 65,722 B,
+  dispatcher 9,253 B).

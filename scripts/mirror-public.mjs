@@ -16,6 +16,7 @@
  *   2. drop internal paths (`.planning/`, `TESTER-BRIEF.md`, extra `--exclude`
  *      paths) and any file whose home paths cannot be rewritten safely;
  *   3. sanitize text: absolute home paths → `<home>/user`, then `sanitizeForPublic()`
+ *      (which scrubs explicit usernames and secrets; env `USER` is ignored, #46)
  *      from `lib/mirror-public.js` (private scope, mount paths, RFC1918 IPs),
  *      and redact secret literals (tokens, private key blocks);
  *   4. re-run the `scripts/leak-scan.mjs` rule set over the snapshot;
@@ -134,30 +135,6 @@ function lineOf(text, index) {
 }
 
 /**
- * Run the sanitizer with the host username temporarily unset.
- *
- * sanitizeForPublic() also rewrites `process.env.USER`/`USERNAME` as bare
- * words. On this host USER is `dsh`, which is a product word: without this
- * guard every `dsh-gitea`/`dsh` mention in the mirror would become
- * `user-gitea`/`user`. The env is only restored for this synchronous call, and
- * the leak scan below is the backstop for paths.
- */
-function sanitizeWithoutEnvUsers(text) {
-  const saved = {}
-  for (const key of ['USER', 'USERNAME']) {
-    saved[key] = Object.prototype.hasOwnProperty.call(process.env, key) ? process.env[key] : undefined
-    delete process.env[key]
-  }
-  try {
-    return sanitizeForPublic(text, {})
-  } finally {
-    for (const key of ['USER', 'USERNAME']) {
-      if (saved[key] !== undefined) process.env[key] = saved[key]
-    }
-  }
-}
-
-/**
  * Sanitize one file's text. Returns the rewritten text plus the secret
  * findings that were defanged (each one is fatal for the snapshot).
  */
@@ -181,7 +158,7 @@ export function sanitizeText(raw) {
   }
 
   text = text.replace(HOME_PATH_REWRITE, '/home/user')
-  text = sanitizeWithoutEnvUsers(text)
+  text = sanitizeForPublic(text, {})
   return { text, secrets }
 }
 
