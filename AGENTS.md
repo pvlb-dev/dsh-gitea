@@ -13,7 +13,7 @@ This repo lives on the pvlb.dev forge:
 the upstream plugin (branch `master`; upstream is watch-only).
 
 Before starting, read the bootcamp page:
-<https://git.pvlb.dev/pvlb-infra/vps-setup/wiki/DSH-Bootcamp> — repos and wikis
+<https://git.pvlb.dev/ops/srvbtw/wiki/DSH-Bootcamp> — repos and wikis
 are private, so read it through an SSH clone, not `web_fetch`: a `404` from this
 forge means "not authenticated", not "missing". `gitea_wiki get` returns
 metadata only (#4); the body needs

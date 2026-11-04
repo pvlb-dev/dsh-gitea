@@ -2,7 +2,7 @@
 
 Part of the dsh-gitea manual. The map is [`../AGENTS.md`](../AGENTS.md). These
 are the pvlb.dev cross-project conventions applied to this repo; the canonical
-page is the [bootcamp wiki](https://git.pvlb.dev/pvlb-infra/vps-setup/wiki/DSH-Bootcamp)
+page is the [bootcamp wiki](https://git.pvlb.dev/ops/srvbtw/wiki/DSH-Bootcamp)
 and [`pvlb-infra/vps-setup/devops/workflow.md`](https://git.pvlb.dev/pvlb-infra/vps-setup/src/branch/master/devops/workflow.md).
 
 ## Session protocol
