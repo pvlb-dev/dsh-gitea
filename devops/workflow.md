@@ -3,7 +3,7 @@
 Part of the dsh-gitea manual. The map is [`../AGENTS.md`](../AGENTS.md). These
 are the pvlb.dev cross-project conventions applied to this repo; the canonical
 page is the [bootcamp wiki](https://git.pvlb.dev/ops/srvbtw/wiki/DSH-Bootcamp)
-and [`pvlb-infra/vps-setup/devops/workflow.md`](https://git.pvlb.dev/pvlb-infra/vps-setup/src/branch/master/devops/workflow.md).
+and [`ops/srvbtw/devops/workflow.md`](https://git.pvlb.dev/ops/srvbtw/src/branch/master/devops/workflow.md).
 
 ## Session protocol
 
@@ -61,7 +61,7 @@ relationship, not a work type, so they get **no `type/` prefix**.
 
 | Label | Meaning |
 |---|---|
-| `note` | a change an agent made outside its project, queued for review in the owning control repo (`pvlb-infra/vps-setup` on the server) |
+| `note` | a change an agent made outside its project, queued for review in the owning control repo (`ops/srvbtw` on the server) |
 | `NaNs` | *needs a new session*: not started here, handoff written into the issue body |
 | `bootcamp` | a house rule landed but a bootcamp page still needs it |
 
