@@ -627,7 +627,7 @@ Two caveats:
 | `assets/screenshots/` | README screenshot of the Git drawer (#63) |
 | `README.zh.md` | Chinese translation of this README, linked from all three language headers |
 | `README.ru.md` | Russian translation of this README, linked from all three language headers |
-| `AGENTS.md` | Agent-facing guide to the working-notes (MOC) system: a small public map, project notes operator-local |
+| `AGENTS.md` | The agent map: contract, trigger table and the first traps; the detail is operator-local in `devops/` |
 
 ## License
 
