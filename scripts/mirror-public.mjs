@@ -13,8 +13,8 @@
  * Pipeline (all local, no network, no writes inside the source repo):
  *   1. read the committed tree — HEAD blobs via `git ls-tree` + `git cat-file`,
  *      so a dirty working tree cannot leak uncommitted edits into the mirror;
- *   2. drop internal paths (`.planning/`, `TESTER-BRIEF.md`, extra `--exclude`
- *      paths) and any file whose home paths cannot be rewritten safely;
+ *   2. drop internal paths (`.planning/`, `devops/`, `TESTER-BRIEF.md`, extra
+ *      `--exclude` paths) and any file whose home paths cannot be rewritten safely;
  *   3. sanitize text: absolute home paths → `<home>/user`, then `sanitizeForPublic()`
  *      (which scrubs explicit usernames and secrets; env `USER` is ignored, #46)
  *      from `lib/mirror-public.js` (private scope, mount paths, RFC1918 IPs),
@@ -49,6 +49,7 @@ const SCRIPT_ROOT = dirname(dirname(fileURLToPath(import.meta.url)))
 export const DEFAULT_EXCLUDES = [
   { exact: 'TESTER-BRIEF.md', reason: 'internal QA brief (internal QA process)' },
   { prefix: '.planning/', reason: 'internal planning (gitignored here)' },
+  { prefix: 'devops/', reason: 'internal runbook (operator-local, gitignored)' },
   { prefix: 'node_modules/', reason: 'dependencies' },
   { prefix: '.worktrees/', reason: 'git worktrees' },
 ]
