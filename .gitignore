@@ -10,12 +10,13 @@ credentials.yaml
 .worktrees/
 
 # Machine-local instructions (identity, signing, tokens): the bootcamp ships a
-# portable GIT.md; copy it in, never commit it. See AGENTS.md.
+# portable GIT.md; copy it in, never commit it. See devops/agents.md.
 GIT.md
 
 # Operator-local workflow: the `devops/` runbooks, the session history
 # (`LOGS.md`) and the input drop box stay on this box. The public tree is the
-# product, not our operations manual; AGENTS.md describes the local-only paths.
+# product, not our operations manual; the public AGENTS.md guide explains the
+# split.
 devops/
 LOGS.md
 /input
