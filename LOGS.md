@@ -37,6 +37,7 @@ One line per session, oldest first; the sections below are the detail.
 | 2026-10-25 | 0.8.8 | Host-authoritative preset list (stale-Host skew) |
 | 2026-10-25 | — (unreleased) | #63 Git-sidebar repository link; bundled-release + on-server test-phase policy; trilingual README (EN/ZH/RU) + drawer screenshot; `dispatcher` becomes the default preset (`DEFAULT_PRESET`); #66 `gitea_help` formatter fix; #65 PR-comment formatters |
 | 2026-10-27 | — | Bootcamp sync: AGENTS.md split into a map + `devops/` topics, input box, `note`/`NaNs` handoffs |
+| 2026-11-08 | — | README off the ops runbook (#73); `devops/` + input symlink leave the public tree (#74) |
 
 ## Session log (2026-10-22)
 
@@ -794,3 +795,30 @@ the three plain session-handoff labels.
   with it, the Forgejo stays on this box. Deployment facts in
   `devops/state.md` / `devops/deploy.md` will need updating in the first
   session there; filed as a `NaNs` handoff.
+
+## 2026-11-08 — README off the ops runbook, `devops/` out of the public tree
+
+- Operator: (1) "remove the details regarding our forge deployment and CI/CD"
+  from the npm README; (2) "remove your devops folder from the public ...
+  gitignore it".
+- **README (#73)**: deleted the `## CI, releases and versioning` runbook, the
+  Forgejo registry tarball fallback and the CI/deployment references in
+  `Built on upstream`, `Development` and `Repository layout`. The manual no
+  longer documents workflows, tokens, registries or the release ritual; the
+  one fact not already in a topic (`dist-tags.latest` because Forgejo 17 has no
+  npmjs-style `/latest`) moved to `devops/releases.md`. `README.zh.md` /
+  `README.ru.md` are refreshed in the next release pass, so the npm tarball
+  ships all three clean.
+- **Repo (#74)**: `devops/` and the root `input` symlink are untracked
+  (`git rm --cached`, files kept on disk), gitignored, and `devops/` added to
+  `scripts/mirror-public.mjs` `DEFAULT_EXCLUDES`. `AGENTS.md` marks the three
+  local paths (and the layout row); the illustration README no longer links
+  into them. The `.forgejo` workflows stay tracked — CI cannot run from an
+  ignored file.
+- **Open**: the public history still contains `devops/` in the nine commits
+  since 2026-10-27, and the GitHub push mirror carries that history. A purge is
+  a history rewrite + force-push; the house rule wants explicit operator
+  approval, so it is folded into the 0.9.0 compaction unless the operator
+  chooses to do it now.
+- Checks: `npm run check` — 241 tests, 226 pass, 15 skipped (no DSH peers
+  installed), leak scan clean. Commits `ae36b11` (#73), `ca08b1e` (#74).
