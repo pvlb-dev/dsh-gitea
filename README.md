@@ -77,8 +77,7 @@ follow-up issue without leaving the chat.
 - Node.js 20 or newer.
 - `pnpm` that DSH can execute — Plugin Manager shells out to it for profile
   installs.
-- `git` on the DSH host for the git install (the tarball fallback does not
-  need it).
+- `git` on the DSH host for the install straight from the repository.
 - A Gitea or Forgejo instance reachable over HTTPS from the DSH host, plus an
   API token for it.
 
@@ -96,8 +95,7 @@ dsh plugin --profile web add dsh-gitea
 
 The command adds `dsh-gitea` to the profile and selects its bundle — the package
 declares `dsh.bundle`, so the plugin row is enabled without a separate Plugin
-Manager step. There is no checkout to bootstrap, and `npm run dev:link` is
-**not** needed: that script only exists for `link:` installs of a working copy.
+Manager step. There is no checkout to bootstrap.
 
 DSH applies the new profile by itself — in the web profile HMR watches the
 bundle list; on a profile without HMR, restart the DSH service. Refresh the
@@ -120,14 +118,6 @@ dsh plugin --profile web add https://git.pvlb.dev/dsh-plugins/dsh-gitea.git#v0.8
 The `.git` suffix is what makes pnpm treat the URL as a git repository. Without
 it the URL is fetched as a tarball and the install fails with
 `ERR_PNPM_TARBALL_HTTP_STATUS … 404`.
-
-### Fallback — the Forgejo registry tarball
-
-Use this when neither npmjs nor the git remote is reachable from the DSH host:
-
-```bash
-dsh plugin --profile web add https://git.pvlb.dev/api/packages/dsh-plugins/npm/dsh-gitea/-/0.8.4/dsh-gitea-0.8.4.tgz
-```
 
 Either way the package is self-contained — `lib/index.js` plus
 `cordis.patch.yml` — and its DSH peers come from the profile.
@@ -233,7 +223,7 @@ when a workspace only files issues or only reviews pull requests.
 
 | Symptom | Cause | Fix |
 |:--|:--|:--|
-| `ERR_PNPM_TARBALL_HTTP_STATUS … 404`, or a JSON parse error, while adding | the URL had no `.git`, so pnpm fetched it as a tarball | append `.git`, or install the tarball URL above |
+| `ERR_PNPM_TARBALL_HTTP_STATUS … 404`, or a JSON parse error, while adding | the URL had no `.git`, so pnpm fetched it as a tarball | append `.git` |
 | `spawn pnpm ENOENT`, or `dsh: pnpm was not found` | the DSH service's `PATH` has no `pnpm` | name it in the profile patch — `plugin-manager.pnpmCommand: /opt/node/bin/pnpm` (your absolute path) — then retry |
 | The row reports `failed to import` or `Cannot find package '@deepseek-ai/schemastery'` | a `link:` install of a working copy without peer resolution; a git or tarball install does not do this | run `npm run dev:link` in that checkout, then toggle the bundle off and on |
 | No **Gitea** entry under Settings | the bundle is not selected, or the browser still runs the old client bundle | check `plugin_manager action=list_bundles`, hard-refresh (`Ctrl+F5`), restart DSH if the profile has no HMR |
@@ -537,16 +527,15 @@ plugin can react to forge activity without polling.
 - **Risky writes are gated.** Destructive tools need `confirm: true` (the
   riskier helpers are dry-run-first), and the one-click updater needs both a
   loopback request carrying `x-dsh-plugin-update` and the `updates` switch.
-- **The publishable tree is scanned.** `npm run test:leaks` fails the build on
-  private paths, private scopes, token literals or Cyrillic text in shipped JS.
+- **The publishable tree is scanned** for private paths, private scopes and
+  token literals before it ships.
 
 ## Built on upstream
 
 `dsh-gitea` is a fork of
 [`GooDAnDReaDY/dsh-gitea`](https://github.com/GooDAnDReaDY/dsh-gitea) (MIT),
-branched at upstream `abfd952` and maintained on the pvlb.dev forge. We run it
-on our own DeepSeek Harness deployment and carry the fixes and deployment glue
-it needed.
+branched at upstream `abfd952` and maintained on the pvlb.dev forge. We carry
+the fixes it needed.
 
 **Upstream is watched, not developed against.** Its public GitHub tree is
 generated from the author's private source repo — every commit is
@@ -564,10 +553,9 @@ What the fork adds on top of upstream:
 | Route-backed settings form (`GET`/`POST /dsh-gitea/config`) with `writable` + Retry | the browser `configForms` mirror is memory-only on non-loopback pages and hid every field |
 | `lib/http-guard.js`: a mounted DSH Connection fence is authoritative for reads and writes | admitted Tailscale/LAN requests fell through to the loopback-only fallback and became `403` |
 | `scripts/dev-link-dsh.mjs` (`npm run dev:link`) | pnpm `link:` installs do not resolve the plugin's DSH peers |
-| `updates` Config switch + an updater pointed at the Forgejo npm registry | the updater installs **our** published package, not upstream's; the switch protects a `link:` dev checkout |
+| `updates` Config switch + a one-click updater | the updater installs this fork's published package, not upstream's; the switch protects a `link:` dev checkout |
 | `test/` regression suite + `scripts/leak-scan.mjs` | upstream's public tree ships the `npm test` script but not the test files |
-| `.forgejo/workflows/ci.yml` + `publish.yml` | checks on every push to `master`; tagged publishes go to our own npm registry |
-| Unscoped `dsh-gitea` package name, version tags, this README + `AGENTS.md` | the fork is a maintained project, not an anonymous snapshot |
+| Unscoped `dsh-gitea` package name and this manual | the fork is a maintained project, not an anonymous snapshot |
 
 Tool fixes carried in the fork: output formatters (row truncation, bare `OK`,
 label ids), wiki CRUD and repo-contents decoding, PR/merge semantics, the
@@ -603,7 +591,7 @@ After a change, reload the half you touched:
 - **Client half** (`lib/client.js`): the bundle is served per request, so a hard
   refresh (`Ctrl+F5`) picks it up.
 
-Checks — `npm run check` is the CI gate and what to run before every push:
+Checks — run `npm run check` before a pull request or a push:
 
 ```bash
 npm run check        # npm test && test:leaks && node --check lib/client.js + lib/index.js
@@ -622,83 +610,6 @@ Two caveats:
   and registration, not what a human sees; UI changes still need a human check
   in the Web UI (Settings entry, fields, save persistence, Git chip).
 
-## CI, releases and versioning
-
-Four Forgejo Actions workflows in `.forgejo/workflows/`:
-
-| Workflow | Trigger | Does |
-|:--|:--|:--|
-| `ci.yml` | push to `master`, manual dispatch | Node 22.6 → `npm run check`, then `npm pack --dry-run` |
-| `publish.yml` | tag `v*` (manual = dry run) | re-runs the checks, requires the tag to equal `v<package.json version>`, publishes to the Forgejo registry, skips an already-published version |
-| `publish-npmjs.yml` | tag `v*` (manual = checks only) | the same checks and tag guard, then `npm stage publish` to the public npm registry; skipped while the `NPMJS_TOKEN` secret is absent |
-| `release.yml` | tag `v*` (manual = notes preview) | creates the Forgejo release page for the tag: name and notes from `CHANGELOG.md`, plus the npm tarball as a downloadable asset; never rewrites an existing release |
-
-- Release pages are generated, not hand-written: `scripts/release-notes.mjs`
-  turns the `## [<version>]` changelog section into the title
-  (`v0.8.4 — Publish to npmjs through staged publishing`) and body, and appends
-  the install command for that exact version. The workflow uses the automatic
-  Actions token (a `RELEASE_TOKEN` secret overrides it) and leaves an existing
-  release untouched, so notes edited in the UI survive later re-runs. The same
-  page carries the tarball:
-  `.../releases/download/v<version>/dsh-gitea-<version>.tgz`.
-
-- Registries: the Forgejo one is
-  `https://git.pvlb.dev/api/packages/dsh-plugins/npm/` (secret `NPM_TOKEN`, a
-  Forgejo token with the `write:package` scope); npmjs is the default registry
-  (secret `NPMJS_TOKEN`, a granular token with *read and write (stage only)*).
-  An empty `NPM_TOKEN` fails the Forgejo job; an empty `NPMJS_TOKEN` only skips
-  the public publish.
-- `package.json` is public (`publishConfig.access: public`), so both jobs
-  publish the same tarball; `files` keeps the package to `lib/`, `assets/`,
-  `cordis.patch.yml`, `README.md`, `README.zh.md`, `README.ru.md` and
-  `LICENSE`.
-- No `pull_request` trigger on purpose: the shared runner gives job containers
-  the host's rootless Docker socket, so only maintainer-controlled events may
-  execute a workflow.
-- A tag push is the only path that publishes, and the same tag publishes to both
-  registries — the Forgejo one directly, npmjs as a staged version that a
-  maintainer approves with 2FA (`npm stage approve <stage-id>`, or the package
-  page on npmjs.com). `npm publish` would be rejected by a stage-only token.
-
-Release ritual:
-
-```bash
-# bump package.json + CHANGELOG.md, commit
-git push origin master
-git tag -a v0.8.4 -m "dsh-gitea 0.8.4"
-git push origin v0.8.4        # triggers publish.yml, publish-npmjs.yml and release.yml
-
-# npmjs stages instead of publishing: approve the staged version with 2FA
-# (or click Approve on the package page at npmjs.com)
-npm stage approve <stage-id>
-```
-
-Versioning:
-
-- Current fork version `0.8.9`, tag `v0.8.9`; earlier builds used
-  `<upstream base>-dsh.<n>` (for example `0.7.40-dsh.7`), hotfixes may use
-  `0.8.9-dsh.<n>`. Tag every state that is live on the server.
-- Rollback: `git checkout v0.8.9`, toggle the bundle off and on, hard-refresh.
-- `CHANGELOG.md` gets a fork entry per release; upstream entries stay intact.
-- Keep the `peerDependencies` DSH range in step with the Harness prerelease
-  line (it currently names `>=0.1.7-rc.2 <0.2.0-0`, `>=0.2.0-rc.1 <0.3.0-0` and
-  `>=0.2.1-0 <0.3.0-0`) — a line that the range does not name keeps the plugin
-  silently unloaded after a Harness upgrade.
-
-Updater:
-
-- The in-UI updater reads `dist-tags.latest` from the Forgejo registry (Forgejo
-  17 has no npmjs-style `/latest`), installs the exact version's tarball through
-  a throwaway `.npmrc` that leaves the default registry alone, and is
-  double-gated: loopback-only request with the `x-dsh-plugin-update` header,
-  plus the `updates` Config switch. This profile keeps `updates: false` for the
-  `link:` checkout; enabling it lets the next update replace that checkout with
-  the published package.
-- **Never set the Forgejo registry as the default npm registry.** pnpm would
-  then look up the profile's other packages (`dsh-cost-meter`, etc.) there and
-  404. Keep npmjs as the default and install this package by its explicit
-  tarball URL.
-
 ## Repository layout
 
 | Path | Role |
@@ -708,16 +619,15 @@ Updater:
 | `lib/routes.js`, `lib/routes-hub.js` | HTTP endpoints (`/config`, `/events`, `/git-*`, `/sse`, `/hub`, `/release-assistant`, webhook) and the Hub dispatcher |
 | `lib/http-guard.js` | Route auth/CSRF fence: DSH Connection first, loopback-only fallback |
 | `lib/gitea-client.js` | Gitea REST client (cache, ETags, retries, timeouts) |
-| `lib/plugin-updater.js` | One-click updater: Forgejo packument, unscoped tarball install, `updates` switch |
+| `lib/plugin-updater.js` | One-click updater: version lookup, tarball install, `updates` switch |
 | `lib/handlers*`, `lib/tool-defs*` | Tool implementations, model-facing schemas, formatters |
-| `.forgejo/workflows/` | `ci.yml` (push checks), `publish.yml` (tag → Forgejo registry) and `publish-npmjs.yml` (tag → npmjs) |
 | `scripts/` | `dev-link-dsh.mjs` (`link:` bootstrap) and `leak-scan.mjs` (hygiene gate) |
 | `test/*.test.mjs` | The fork's regression suite (`npm test`) |
 | `assets/illustrations/` | README hero illustration (`whale-forge.jpg`); provenance in its README |
 | `assets/screenshots/` | README screenshot of the Git drawer (#63) |
 | `README.zh.md` | Chinese translation of this README, linked from all three language headers |
 | `README.ru.md` | Russian translation of this README, linked from all three language headers |
-| `AGENTS.md` | Deep operational notes: DSH slot matrix, settings contract, install/reload runbooks, failure table |
+| `AGENTS.md` | Working notes for agents: DSH slot matrix, settings contract and failure table |
 
 ## License
 
