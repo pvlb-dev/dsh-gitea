@@ -13,8 +13,9 @@ credentials.yaml
 # portable GIT.md; copy it in, never commit it. See AGENTS.md.
 GIT.md
 
-# Operator-local workflow: the `devops/` runbooks and the input drop box stay on
-# this box. The public tree is the product, not our operations manual; AGENTS.md
-# describes the local-only paths.
+# Operator-local workflow: the `devops/` runbooks, the session history
+# (`LOGS.md`) and the input drop box stay on this box. The public tree is the
+# product, not our operations manual; AGENTS.md describes the local-only paths.
 devops/
+LOGS.md
 /input

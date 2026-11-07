@@ -4,9 +4,9 @@ This file is for an AI agent (or a human in a hurry) picking up `dsh-gitea`.
 **It is a map, not the manual**: the contract, the first traps and a trigger
 table live here; the detail lives in `devops/*.md`, with [`GIT.md`](GIT.md) for
 git identity and [`LOGS.md`](LOGS.md) for session history. Read the topic file
-your task touches, not all of them. `devops/`, `GIT.md` and `input/` are
-**operator-local and gitignored**: the public tree carries the product, not the
-runbook, so a fresh public clone has this map but not the topic files.
+your task touches, not all of them. `devops/`, `GIT.md`, `LOGS.md` and `input/`
+are **operator-local and gitignored**: the public tree carries the product, not
+the runbook, so a fresh public clone has this map but not the topic files.
 
 ## Orientation — pvlb.dev
 
@@ -73,7 +73,7 @@ metadata only (#4); the body needs
 | input box, `note`/`NaNs`/`bootcamp` handoffs, session protocol, doc budgets | [`devops/workflow.md`](devops/workflow.md) |
 | the current version and deployment facts | [`devops/state.md`](devops/state.md) |
 | git identity, signing, tokens, a fresh checkout | [`GIT.md`](GIT.md) (gitignored; copy it from `pvlb-dev`) |
-| history, provenance, per-session reasoning | [`LOGS.md`](LOGS.md) |
+| history, provenance, per-session reasoning | [`LOGS.md`](LOGS.md) (gitignored; operator-local) |
 | the user manual — install, config, tool reference | [`README.md`](README.md) |
 
 ## Issues and labels
@@ -131,8 +131,7 @@ Labels are per repository. Every issue gets three axes when it is opened:
 | `scripts/` | `dev-link-dsh.mjs`, `leak-scan.mjs`, `release-notes.mjs`, `mirror-public.mjs` |
 | `test/*.test.mjs` | Fork regression checks (`npm test`); upstream ships none |
 | `README*.md`, `CHANGELOG.md` | User manual (EN/ZH/RU), release notes |
-| `devops/`, `GIT.md`, `input/` | Operator-local and gitignored: this map's topic files, git identity, drop box |
-| `LOGS.md` | Session history |
+| `devops/`, `GIT.md`, `LOGS.md`, `input/` | Operator-local and gitignored: topic files, git identity, session history, drop box |
 
 ## Session protocol
 
@@ -144,8 +143,8 @@ Labels are per repository. Every issue gets three axes when it is opened:
 4. Commit conventional (`feat:` / `fix:` / `docs:`), signed as `dsh`; **push**.
    A commit that never left the box does not exist for the operator.
 5. Label the matching issue at creation, close it in the same pass the work
-   lands, and append the session to [`LOGS.md`](LOGS.md). A change is not
-   finished until it is recorded.
+   lands, and append the session to [`LOGS.md`](LOGS.md) (local-only). A change
+   is not finished until it is recorded.
 6. **`README.md` travels with every change; the translations wait for the
    release pass.** Keep the English manual current in the same commit;
    `README.zh.md` / `README.ru.md` are refreshed before a tag, not per change
