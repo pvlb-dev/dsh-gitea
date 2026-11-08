@@ -23,7 +23,8 @@
     "test": "node --test test/*.test.mjs",
     "test:leaks": "node scripts/leak-scan.mjs",
     "check": "npm test && npm run test:leaks && node --check lib/client.js && node --check lib/index.js",
-    "dev:link": "node scripts/dev-link-dsh.mjs"
+    "dev:link": "node scripts/dev-link-dsh.mjs",
+    "eval:fuzzy": "node scripts/fuzzy-eval.mjs"
   },
   "keywords": [
     "dsh",
